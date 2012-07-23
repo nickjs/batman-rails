@@ -3846,18 +3846,18 @@
 
     __extends(RadioBinding, _super);
 
-    function RadioBinding(node) {
-      RadioBinding.__super__.constructor.apply(this, arguments);
-      if (node.checked) {
-        this.set('filteredValue', node.value);
-      }
+    function RadioBinding() {
+      return RadioBinding.__super__.constructor.apply(this, arguments);
     }
+
+    RadioBinding.prototype.isInputBinding = true;
 
     RadioBinding.prototype.dataChange = function(value) {
       var boundValue;
-      boundValue = this.get('filteredValue');
-      if (boundValue != null) {
-        return this.node.checked = boundValue === Batman.DOM.attrReaders._parseAttribute(this.node.value);
+      if ((boundValue = this.get('filteredValue')) != null) {
+        return this.node.checked = boundValue === this.node.value;
+      } else if (this.node.checked) {
+        return this.set('filteredValue', this.node.value);
       }
     };
 
@@ -5801,10 +5801,11 @@
     };
 
     Model.encode = function() {
-      var encoder, encoderForKey, encoderOrLastKey, key, keys, _base, _i, _j, _len;
+      var encoder, encoderOrLastKey, hash, key, keys, operation, _base, _base1, _i, _j, _k, _len, _len1, _ref;
       keys = 2 <= arguments.length ? __slice.call(arguments, 0, _i = arguments.length - 1) : (_i = 0, []), encoderOrLastKey = arguments[_i++];
       Batman.initializeObject(this.prototype);
       (_base = this.prototype._batman).encoders || (_base.encoders = new Batman.SimpleHash);
+      (_base1 = this.prototype._batman).decoders || (_base1.decoders = new Batman.SimpleHash);
       encoder = {};
       switch (Batman.typeOf(encoderOrLastKey)) {
         case 'String':
@@ -5814,14 +5815,26 @@
           encoder.encode = encoderOrLastKey;
           break;
         default:
-          encoder = encoderOrLastKey;
+          if (encoderOrLastKey.encode != null) {
+            encoder.encode = encoderOrLastKey.encode;
+          }
+          if (encoderOrLastKey.decode != null) {
+            encoder.decode = encoderOrLastKey.decode;
+          }
       }
-      for (_j = 0, _len = keys.length; _j < _len; _j++) {
-        key = keys[_j];
-        encoderForKey = Batman.extend({
-          as: key
-        }, this.defaultEncoder, encoder);
-        this.prototype._batman.encoders.set(key, encoderForKey);
+      encoder = Batman.extend({}, this.defaultEncoder, encoder);
+      _ref = ['encode', 'decode'];
+      for (_j = 0, _len = _ref.length; _j < _len; _j++) {
+        operation = _ref[_j];
+        for (_k = 0, _len1 = keys.length; _k < _len1; _k++) {
+          key = keys[_k];
+          hash = this.prototype._batman["" + operation + "rs"];
+          if (encoder[operation]) {
+            hash.set(key, encoder[operation]);
+          } else {
+            hash.unset(key);
+          }
+        }
       }
     };
 
@@ -6232,13 +6245,11 @@
       if (!(!encoders || encoders.isEmpty())) {
         encoders.forEach(function(key, encoder) {
           var encodedVal, val;
-          if (encoder.encode) {
-            val = _this.get(key);
-            if (typeof val !== 'undefined') {
-              encodedVal = encoder.encode(val, key, obj, _this);
-              if (typeof encodedVal !== 'undefined') {
-                return obj[encoder.as] = encodedVal;
-              }
+          val = _this.get(key);
+          if (typeof val !== 'undefined') {
+            encodedVal = encoder(val, key, obj, _this);
+            if (typeof encodedVal !== 'undefined') {
+              return obj[key] = encodedVal;
             }
           }
         });
@@ -6247,21 +6258,19 @@
     };
 
     Model.prototype.fromJSON = function(data) {
-      var encoders, key, obj, value,
+      var decoders, key, obj, value,
         _this = this;
       obj = {};
-      encoders = this._batman.get('encoders');
-      if (!encoders || encoders.isEmpty() || !encoders.some(function(key, encoder) {
-        return encoder.decode != null;
-      })) {
+      decoders = this._batman.get('decoders');
+      if (!decoders || decoders.isEmpty()) {
         for (key in data) {
           value = data[key];
           obj[key] = value;
         }
       } else {
-        encoders.forEach(function(key, encoder) {
-          if (encoder.decode && typeof data[encoder.as] !== 'undefined') {
-            return obj[key] = encoder.decode(data[encoder.as], encoder.as, data, obj, _this);
+        decoders.forEach(function(key, decoder) {
+          if (typeof data[key] !== 'undefined') {
+            return obj[key] = decoder(data[key], key, data, obj, _this);
           }
         });
       }
@@ -6269,7 +6278,7 @@
         obj.id = data[this.constructor.primaryKey];
       }
       Batman.developer["do"](function() {
-        if ((!encoders) || encoders.length <= 1) {
+        if ((!decoders) || decoders.length <= 1) {
           return Batman.developer.warn("Warning: Model " + (Batman.functionName(_this.constructor)) + " has suspiciously few decoders!");
         }
       });
@@ -6897,9 +6906,7 @@
       queryParam: '(?:\\?.+)?',
       namedOrSplat: /[:|\*]([\w\d]+)/g,
       namePrefix: '[:|\*]',
-      escapeRegExp: /[-[\]{}+?.,\\^$|#\s]/g,
-      openOptParam: /\(/g,
-      closeOptParam: /\)/g
+      escapeRegExp: /[-[\]{}()+?.,\\^$|#\s]/g
     };
 
     Route.prototype.optionKeys = ['member', 'collection'];
@@ -6915,7 +6922,7 @@
         templatePath = "/" + templatePath;
       }
       pattern = templatePath.replace(regexps.escapeRegExp, '\\$&');
-      regexp = RegExp("^" + (pattern.replace(regexps.openOptParam, '(?:').replace(regexps.closeOptParam, ')?').replace(regexps.namedParam, '([^\/]+)').replace(regexps.splatParam, '(.*?)')) + regexps.queryParam + "$");
+      regexp = RegExp("^" + (pattern.replace(regexps.namedParam, '([^\/]+)').replace(regexps.splatParam, '(.*?)')) + regexps.queryParam + "$");
       namedArguments = ((function() {
         var _results;
         _results = [];
@@ -6957,21 +6964,19 @@
     };
 
     Route.prototype.pathFromParams = function(argumentParams) {
-      var hash, key, name, newPath, params, path, query, regexp, regexps, _i, _j, _len, _len1, _ref, _ref1;
+      var hash, key, name, newPath, params, path, query, regexp, _i, _j, _len, _len1, _ref, _ref1;
       params = Batman.extend({}, argumentParams);
       path = this.get('templatePath');
-      regexps = this.constructor.regexps;
       _ref = this.get('namedArguments');
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         name = _ref[_i];
-        regexp = RegExp("" + regexps.namePrefix + name);
+        regexp = RegExp("" + this.constructor.regexps.namePrefix + name);
         newPath = path.replace(regexp, (params[name] != null ? params[name] : ''));
         if (newPath !== path) {
           delete params[name];
           path = newPath;
         }
       }
-      path = path.replace(regexps.openOptParam, '').replace(regexps.closeOptParam, '').replace(/([^\/])\/+$/, '$1');
       _ref1 = this.testKeys;
       for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
         key = _ref1[_j];
