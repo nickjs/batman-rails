@@ -1,5 +1,3 @@
-(function() {
-  
 /*!
   * Reqwest! A general purpose XHR connection manager
   * (c) Dustin Diaz 2011
@@ -374,13 +372,69 @@
   }
 
   return reqwest
-})
+});
 
-;
+(function() {
+  var _ref, _ref1;
 
+  Batman.extend(Batman.DOM, {
+    querySelectorAll: (typeof window !== "undefined" && window !== null ? (_ref = window.document) != null ? _ref.querySelectorAll : void 0 : void 0) != null ? function(node, selector) {
+      return node.querySelectorAll(selector);
+    } : function() {
+      return Batman.developer.error("Please include either jQuery or a querySelectorAll polyfill, or set Batman.DOM.querySelectorAll to return an empty array.");
+    },
+    querySelector: (typeof window !== "undefined" && window !== null ? (_ref1 = window.document) != null ? _ref1.querySelector : void 0 : void 0) != null ? function(node, selector) {
+      return node.querySelector(selector);
+    } : function() {
+      return Batman.developer.error("Please include either jQuery or a querySelector polyfill, or set Batman.DOM.querySelector to an empty function.");
+    },
+    setInnerHTML: function(node, html) {
+      var child, childNodes, result, _i, _j, _len, _len1;
+      childNodes = (function() {
+        var _i, _len, _ref2, _results;
+        _ref2 = node.childNodes;
+        _results = [];
+        for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+          child = _ref2[_i];
+          _results.push(child);
+        }
+        return _results;
+      })();
+      for (_i = 0, _len = childNodes.length; _i < _len; _i++) {
+        child = childNodes[_i];
+        Batman.DOM.willRemoveNode(child);
+      }
+      result = node.innerHTML = html;
+      for (_j = 0, _len1 = childNodes.length; _j < _len1; _j++) {
+        child = childNodes[_j];
+        Batman.DOM.didRemoveNode(child);
+      }
+      return result;
+    },
+    removeNode: function(node) {
+      var _ref2;
+      Batman.DOM.willRemoveNode(node);
+      if ((_ref2 = node.parentNode) != null) {
+        _ref2.removeChild(node);
+      }
+      return Batman.DOM.didRemoveNode(node);
+    },
+    destroyNode: function(node) {
+      Batman.DOM.willDestroyNode(node);
+      Batman.DOM.removeNode(node);
+      return Batman.DOM.didDestroyNode(node);
+    },
+    appendChild: function(parent, child) {
+      Batman.DOM.willInsertNode(child);
+      parent.appendChild(child);
+      return Batman.DOM.didInsertNode(child);
+    }
+  });
+
+}).call(this);
+
+(function() {
   var prefixes;
-
-  (typeof exports !== "undefined" && exports !== null ? exports : this).reqwest = typeof window !== "undefined" && window !== null ? window.reqwest : reqwest;
 
   Batman.Request.prototype._parseResponseHeaders = function(xhr) {
     var headers;
