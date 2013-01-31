@@ -37,4 +37,14 @@ class ControllerGeneratorTest < Rails::Generators::TestCase
       assert_match %r{  index: \(params\) ->}, controller
     end
   end
+
+  test "routingKey is present" do
+    run_generator %w(Resource)
+
+    assert_file "#{javascripts_path}/controllers/resources_controller.js.coffee" do |controller|
+      routing_key = Regexp.escape("routingKey: 'resources'")
+
+      assert_match /#{routing_key}/ , controller
+    end
+  end
 end
