@@ -1,27 +1,26 @@
 # -*- encoding: utf-8 -*-
-$:.push File.expand_path("../lib", __FILE__)
-require "batman/rails/version"
+lib = File.expand_path('../lib', __FILE__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require 'batman-rails/version'
 
-Gem::Specification.new do |s|
-  s.name        = "batman-rails"
-  s.version     = Batman::Rails::VERSION
-  s.authors     = ["John Duff"]
-  s.email       = ["john.duff@jadedpixel.com"]
-  s.homepage    = "https://github.com/Shopify/batman-rails"
-  s.summary     = %q{Use Batman.js with Rails 3.1}
-  s.description = %q{Quickly get started with Batman.js in a Rails 3.1 app. Provides generators to get started and bundles in the latest version of Batman.js.}
+Gem::Specification.new do |gem|
+  gem.name          = "batman-rails"
+  gem.version       = Batman::Rails::VERSION
+  gem.authors       = ["Matt Helm", "John Duff"]
+  gem.email         = ["matt.helm@shopify.com"]
+  gem.description   = %q{Quickly get started with Batman.js in a Rails app. Provides generators to get started and bundles in the latest version of Batman.js.}
+  gem.summary       = %q{Use Batman.js with Rails}
+  gem.homepage      = "https://github.com/Shopify/batman-rails"
 
-  s.rubyforge_project = "batman-rails"
+  gem.add_dependency "railties", [">= 3.2"]
 
-  s.add_dependency "railties", ">= 3.1.0"
-  s.add_dependency "thor",     ">= 0.14"
-  s.add_development_dependency "bundler", ">= 1.0.0"
-  s.add_development_dependency "rails",   ">= 3.1.0"
-  s.add_development_dependency "mocha"
-  s.add_development_dependency "sqlite3"
+  gem.add_development_dependency "bundler"
+  gem.add_development_dependency "rails"
+  gem.add_development_dependency "mocha"
+  gem.add_development_dependency "sqlite3"
 
-  s.files         = `git ls-files`.split("\n")
-  s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
-  s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
-  s.require_paths = ["lib"]
+  gem.files         = `git ls-files`.split($/)
+  gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
+  gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
+  gem.require_paths = ["lib"]
 end
