@@ -3,7 +3,7 @@ module Batman
     module Common
       def self.included(base)
         base.send(:extend, ClassMethods)
-        base.source_root File.expand_path("../templates", __FILE__)
+        base.source_root File.expand_path("../../templates", __FILE__)
       end
 
       protected
@@ -17,17 +17,26 @@ module Batman
       end
 
       def app_name
-        @app_name ||= options[:app_name] || application_name
+        @app_name ||= options[:app_name] || 'batman'
+      end
+
+      def js_application_name
+        application_name.camelize
       end
 
       def application_name
-        if defined?(::Rails) && ::Rails.application
+        rails_application_name = if defined?(::Rails) && ::Rails.application
           ::Rails.application.class.name.split('::').first.underscore
         end
+        @application_name ||= options[:app_name] || rails_application_name
       end
 
       def js_path
         "app/assets/javascripts"
+      end
+
+      def app_path
+        "#{js_path}/#{app_name}"
       end
 
       def singular_model_name

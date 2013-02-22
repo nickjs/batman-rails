@@ -1,4 +1,4 @@
-require 'generators/batman/common'
+require 'generators/common'
 module Batman
   module Generators
     class ControllerGenerator < ::Rails::Generators::NamedBase
@@ -10,8 +10,8 @@ module Batman
 
 
       RESERVED_JS_WORDS = %w{
-        break case catch continue debugger default delete do else finally for 
-        function if in instanceof new return switch this throw try typeof var void while with 
+        break case catch continue debugger default delete do else finally for
+        function if in instanceof new return switch this throw try typeof var void while with
       }
 
       def validate_no_reserved_words
@@ -25,7 +25,7 @@ module Batman
 
       def create_batman_controller
         with_app_name do
-          template "controller.coffee", "#{js_path}/controllers/#{plural_name.downcase}_controller.js.coffee"
+          template "batman/controller.coffee", "#{app_path}/controllers/#{plural_name.downcase}_controller.js.coffee"
         end
       end
     end
