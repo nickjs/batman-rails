@@ -76,7 +76,6 @@ module Batman
       end
 
       def route_catchall
-# \n  match ":controller(/:action(/:id))", to: "#{app_name}\#index", :constraints => { :format => 'html' }\n
 <<-CODE
 \n  match "(/*redirect_path)", to: "#{app_name}\#index", :constraints => { :format => 'html' }\n
 CODE
