@@ -11,6 +11,12 @@ module Batman
       class_option :skip_git, :type => :boolean, :aliases => "-G", :default => false,
                               :desc => "Skip Git ignores and keeps"
 
+      class_option :skip_jquery, :type => :boolean, :aliases => "-J", :default => false,
+                              :desc => "Skip including jQuery"
+
+      class_option :skip_es5, :type => :boolean, :default => false,
+                              :desc => "Skip including the ES5 shim"
+
       def setup_rails
         with_app_name do
           template "rails/controller.rb", "app/controllers/#{app_name}_controller.rb"
@@ -52,10 +58,10 @@ module Batman
         with_app_name do
           application_file = File.join(app_path, "#{application_name}.js.coffee")
 
-          prepend_file application_file do
-            batman_requires
-          end
-
+          prepend_file application_file, ES5_REQUIRES unless options[:skip_es5]
+          prepend_file application_file, BATMAN_REQUIRES
+          prepend_file application_file, JQUERY_REQUIRES unless options[:skip_jquery]
+          prepend_file application_file, APP_REQUIRES
         end
       end
 
@@ -76,16 +82,21 @@ module Batman
 CODE
       end
 
-      def batman_requires
-<<-CODE
-#= require batman/es5-shim
+ES5_REQUIRES = <<-CODE
+#= require batman/es5-shim\n
+CODE
 
+BATMAN_REQUIRES = <<-CODE
 #= require batman/batman
-#= require batman/batman.rails
+#= require batman/batman.rails\n
+CODE
 
+JQUERY_REQUIRES = <<-CODE
 #= require jquery
-#= require batman/batman.jquery
+#= require batman/batman.jquery\n
+CODE
 
+APP_REQUIRES = <<-CODE
 #= require_self
 
 #= require_tree ./controllers
