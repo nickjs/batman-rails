@@ -1,58 +1,55 @@
-# Batman-Rails
+# Batman::Rails
 
-Easily setup and use batman.js (0.13.1) with rails 3.1
+Easily setup and use Batman.js with Rails
 
-## Rails 3.1 setup
-This gem requires the use of rails 3.1, coffeescript and the new rails asset pipeline provided by sprockets.
+## Installation
 
-This gem vendors the latest version of batman.js for Rails 3.1 and greater. The files will be added to the asset pipeline and available for you to use. 
-    
-### Installation
+Add this line to your application's Gemfile:
 
-In your Gemfile, add this line:
+    gem 'batman-rails'
 
-    gem "batman-rails"
-  
-Then run the following commands:
+And then execute:
 
-    bundle install
-    rails g batman:install
+    $ bundle
+    $ rails generate batman:app
 
 ### Layout and namespacing
 
-Running `rails g batman:install` will create the following directory structure under `app/assets/javascripts/`:
-  
-    controllers/
+Running `rails generate batman:app` will create the following directory structure under `app/assets/app_name/`:
+
     models/
-    helpers/
-    
-It will also create a toplevel app_name.coffee file to setup namespacing and setup initial requires.
-    
+    views/
+    controllers/
+    html/
+    lib/
+
+It will also create a toplevel `app_name.coffee` file to setup namespacing and setup initial requires.
+
 ## Generators
-batman-rails provides 3 simple generators to help get you started using batman.js with rails 3.1. 
-The generators will only create client side code (javascript).
+Batman-Rails provides 3 simple generators to help get you started using Batman.js with Rails.
+The generators will only create client side code (CoffeeScript).
 
 ### Model Generator
 
-    rails g batman:model
-    
-This generator creates a batman model and collection inside `app/assets/javascript/models` to be used to talk to the rails backend.
+    rails generate batman:model
+
+This generator creates a batman model inside `app/assets/app_name/models` to be used to talk to the Rails backend.
 
 ### Controllers
-    
-    rails g batman:controller
-    
+
+    rails generate batman:controller
+
 This generator creates a batman controller for the given actions provided.
 
 ### Scaffolding
 
-    rails g batman:scaffold
-    
+    rails generate batman:scaffold
+
 This generator creates a controller, helper and mode to create a simple crud single page app
 
-## Example Usage
+## Usage
 
-Created a new rails 3.1 application called `blog`.
+Created a new Rails application called `blog`.
 
     rails new blog
 
@@ -63,10 +60,17 @@ Edit your Gemfile and add
 Install the gem and generate scaffolding.
 
     bundle install
-    rails g batman:install
-    rails g scaffold Post title:string content:string
+    rails generate batman:app
+    rails generate scaffold Post title:string content:string
     rake db:migrate
-    rails g batman:scaffold Post title:string content:string
-    
-You now have installed the batman-rails gem, setup a default directory structure for your frontend batman code. 
-Then you generated the usual rails server side crud scaffolding and finally generated batman.js code to provide a simple single page crud app.
+    rails generate batman:scaffold Post title:string content:string
+
+You now have installed the `batman-rails` gem, setup a default directory structure for your frontend batman code. Then you generated the usual Rails server side scaffolding and finally generated Batman.js code to provide a simple single page app.
+
+## Contributing
+
+1. Fork it
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin my-new-feature`)
+5. Create new Pull Request
