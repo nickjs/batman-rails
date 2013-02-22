@@ -1,5 +1,5 @@
-class <%= js_application_name %>.<%= plural_name.camelize %>Controller extends <%= js_application_name %>.ApplicationController
-  routingKey: '<%= plural_name.underscore %>'
+class <%= js_application_name %>.<%= singular_name.camelize %>Controller extends <%= js_application_name %>.ApplicationController
+  routingKey: '<%= singular_name.underscore %>'
 
 <% actions.each do |action| -%>
   <%= action %>: (params) ->

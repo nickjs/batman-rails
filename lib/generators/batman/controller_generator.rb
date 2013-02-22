@@ -25,7 +25,7 @@ module Batman
 
       def create_batman_controller
         with_app_name do
-          template "batman/controller.coffee", "#{app_path}/controllers/#{plural_name.downcase}_controller.js.coffee"
+          template "batman/controller.coffee", "#{app_path}/controllers/#{singular_name.downcase}_controller.js.coffee"
         end
       end
     end
