@@ -4,8 +4,20 @@ Batman.extend Batman.config,
 
 class <%= js_application_name %> extends Batman.App
 
-  # @route '/controller/:id', 'controller#show', resource: 'model', action: 'show'
-  # MOAR EXAMPLES
+  # @resources 'products'
+  # @resources 'discounts', except: ['edit']
+  # @resources 'customers', only: ['new', 'show']
+
+  # @resources 'blogs', ->
+  #   @resources 'articles'
+
+  # @resources 'pages', ->
+  #   @collection 'count'
+  #   @member 'duplicate'
+
+  # @route 'apps', 'apps#index'
+  # @route 'apps/private', 'apps#private', as: 'privateApps'
+
   @root 'main#index'
 
 # Tell Batman to start the app
