@@ -3,36 +3,36 @@ require 'generators/batman/controller_generator'
 
 class ControllerGeneratorTest < Rails::Generators::TestCase
   tests Batman::Generators::ControllerGenerator
-  
+
   test "simple controller" do
     run_generator %w(Task index show)
-    
-    assert_file "#{javascripts_path}/controllers/tasks_controller.js.coffee" do |controller|
-      controller_class = Regexp.escape("class Sample.TasksController extends Batman.Controller")
-      
+
+    assert_file "#{javascripts_path}/batman/controllers/tasks_controller.js.coffee" do |controller|
+      controller_class = Regexp.escape("class Sample.TasksController extends Sample.ApplicationController")
+
       assert_match /#{controller_class}/, controller
       assert_match %r{  index: \(params\) ->}, controller
       assert_match %r{  show: \(params\) ->}, controller
     end
   end
-  
+
   test "two word controller is camelcased" do
     run_generator %w(RegularUser index)
-    
-    assert_file "#{javascripts_path}/controllers/regular_users_controller.js.coffee" do |controller|
-      controller_class = Regexp.escape("class Sample.RegularUsersController extends Batman.Controller")
-      
+
+    assert_file "#{javascripts_path}/batman/controllers/regular_users_controller.js.coffee" do |controller|
+      controller_class = Regexp.escape("class Sample.RegularUsersController extends Sample.ApplicationController")
+
       assert_match /#{controller_class}/, controller
       assert_match %r{  index: \(params\) ->}, controller
     end
   end
-  
+
   test "simple controller with app_name" do
     run_generator %w(Task index --app_name MyApp)
-    
-    assert_file "#{javascripts_path}/controllers/tasks_controller.js.coffee" do |controller|
-      controller_class = Regexp.escape("class MyApp.TasksController extends Batman.Controller")
-      
+
+    assert_file "#{javascripts_path}/MyApp/controllers/tasks_controller.js.coffee" do |controller|
+      controller_class = Regexp.escape("class MyApp.TasksController extends MyApp.ApplicationController")
+
       assert_match /#{controller_class}/, controller
       assert_match %r{  index: \(params\) ->}, controller
     end
@@ -41,7 +41,7 @@ class ControllerGeneratorTest < Rails::Generators::TestCase
   test "routingKey is present" do
     run_generator %w(Resource)
 
-    assert_file "#{javascripts_path}/controllers/resources_controller.js.coffee" do |controller|
+    assert_file "#{javascripts_path}/batman/controllers/resources_controller.js.coffee" do |controller|
       routing_key = Regexp.escape("routingKey: 'resources'")
 
       assert_match /#{routing_key}/ , controller

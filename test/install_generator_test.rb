@@ -1,8 +1,8 @@
 require 'mocha'
 require 'test_helper'
-require 'generators/batman/install_generator'
+require 'generators/batman/app_generator'
 
-module InstallGeneratorTests
+module AppGeneratorTests
 
   def setup
     mkdir_p "#{destination_root}/app/assets/javascripts"
@@ -10,7 +10,7 @@ module InstallGeneratorTests
     Rails.application.class.stubs(:name).returns("Dummy::Application")
     super
   end
-  
+
   def teardown
     Rails.application.class.unstub(:name)
   end
@@ -18,10 +18,8 @@ module InstallGeneratorTests
   def test_batman_application_file_is_created
     run_generator
 
-    assert_file "#{javascripts_path}/dummy.js.coffee" do |app|
-      assert_match /window\.Dummy = class Dummy extends Batman\.App/, app
-      assert_match /@on 'ready', ->/, app
-      assert_match /@on 'run', ->/, app
+    assert_file "#{javascripts_path}batman/dummy.js.coffee" do |app|
+      assert_match /class Dummy extends Batman\.App/, app
     end
   end
 
@@ -29,51 +27,43 @@ module InstallGeneratorTests
     Rails.application.class.stubs(:name).returns("FooBar::Application")
     run_generator
 
-    assert_file "#{javascripts_path}/foo_bar.js.coffee" do |app|
-      assert_match /window\.FooBar = class FooBar extends Batman\.App/, app
+    assert_file "#{javascripts_path}batman/foo_bar.js.coffee" do |app|
+      assert_match /class FooBar extends Batman\.App/, app
     end
-  end
-
-  def test_application_require_is_properly_setup_for_two_word_application_name
-    Rails.application.class.stubs(:name).returns("FooBar::Application")
-    run_generator
-
-    assert_file "#{javascripts_path}/#{application_javascript_path}", /require foo_bar/
   end
 
   def test_batman_directory_structure_is_created
     run_generator
 
-    %W{controllers models helpers}.each do |dir|
-      assert_directory "#{javascripts_path}/#{dir}"
-      assert_file "#{javascripts_path}/#{dir}/.gitkeep"
+    %W{controllers models views html lib}.each do |dir|
+      assert_directory "#{javascripts_path}/batman/#{dir}"
+      assert_file "#{javascripts_path}batman/#{dir}/.gitkeep"
     end
   end
 
   def test_no_gitkeep_files_are_created_when_skipping_git
     run_generator [destination_root, "--skip-git"]
 
-    %W{controllers models helpers}.each do |dir|
-      assert_directory "#{javascripts_path}/#{dir}"
-      assert_no_file "#{javascripts_path}/#{dir}/.gitkeep"
+    %W{controllers models views html lib}.each do |dir|
+      assert_directory "#{javascripts_path}/batman/#{dir}"
+      assert_no_file "#{javascripts_path}/batman/#{dir}/.gitkeep"
     end
   end
 
-  def test_applicationjs_require_batman_jquery_rails_and_dummy
+  def test_batmanjs_require_batman_jquery_rails
     run_generator
 
-    assert_file "#{javascripts_path}/#{application_javascript_path}" do |app|
+    assert_file "#{javascripts_path}batman/dummy.js.coffee" do |app|
       %W{batman batman.jquery batman.rails}.each do |require|
         assert_equal 1, app.scan(%r{require batman\/#{require}$}).length
       end
 
-      assert_match /require dummy/, app
-
-      %W{models controllers helpers}.each do |require|
+      %W{models controllers views lib}.each do |require|
         assert_equal 1, app.scan(/require_tree \.\/#{require}/).length
       end
 
       assert_equal 1, app.scan(/Dummy\.run\(\)/).length
+
     end
   end
 
@@ -84,22 +74,22 @@ module InstallGeneratorTests
   end
 end
 
-class InstallGeneratorWithApplicationJavascriptTest < Rails::Generators::TestCase
-  tests Batman::Generators::InstallGenerator
+class AppGeneratorWithApplicationJavascriptTest < Rails::Generators::TestCase
+  tests Batman::Generators::AppGenerator
 
   def application_javascript_path
     "application.js"
   end
 
-  include InstallGeneratorTests
+  include AppGeneratorTests
 end
 
-class InstallGeneratorWithApplicationCoffeescriptTest < Rails::Generators::TestCase
-  tests Batman::Generators::InstallGenerator
+# class AppGeneratorWithApplicationCoffeescriptTest < Rails::Generators::TestCase
+#   tests Batman::Generators::AppGenerator
 
-  def application_javascript_path
-    "application.js.coffee"
-  end
+#   def application_javascript_path
+#     "application.js.coffee"
+#   end
 
-  include InstallGeneratorTests
-end
+#   include AppGeneratorTests
+# end
