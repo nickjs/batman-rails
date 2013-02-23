@@ -50,6 +50,22 @@ module AppGeneratorTests
     end
   end
 
+  def test_jquery_isnt_added_when_skipping_jquery
+    run_generator [destination_root, "--skip-jquery"]
+
+    assert_file "#{javascripts_path}batman/dummy.js.coffee" do |app|
+      assert_no_match /require jquery/, app
+    end
+  end
+
+  def test_es5_shim_isnt_added_when_skipping_es5_shim
+    run_generator [destination_root, "--skip-es5"]
+
+    assert_file "#{javascripts_path}batman/dummy.js.coffee" do |app|
+      assert_no_match /require batman\/es5-shim/, app
+    end
+  end
+
   def test_batmanjs_require_batman_jquery_rails
     run_generator
 

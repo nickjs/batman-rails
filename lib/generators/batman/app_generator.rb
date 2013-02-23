@@ -58,12 +58,50 @@ module Batman
         with_app_name do
           application_file = File.join(app_path, "#{application_name}.js.coffee")
 
-          prepend_file application_file, ES5_REQUIRES unless options[:skip_es5]
-          prepend_file application_file, BATMAN_REQUIRES
-          prepend_file application_file, JQUERY_REQUIRES unless options[:skip_jquery]
-          prepend_file application_file, APP_REQUIRES
+          prepend_file application_file, es5_requires unless options[:skip_es5]
+          prepend_file application_file, batman_requires
+          prepend_file application_file, jquery_requires unless options[:skip_jquery]
+          prepend_file application_file, app_requires
         end
       end
+
+
+def route_catchall
+<<-CODE
+\n  match "(/*redirect_path)", to: "#{app_name}\#index", :constraints => { :format => 'html' }\n
+CODE
+end
+
+def es5_requires
+<<-CODE
+#= require batman/es5-shim\n
+CODE
+end
+
+def batman_requires
+<<-CODE
+#= require batman/batman
+#= require batman/batman.rails\n
+CODE
+end
+
+def jquery_requires
+<<-CODE
+#= require jquery
+#= require batman/batman.jquery\n
+CODE
+end
+
+def app_requires
+<<-CODE
+#= require_self
+
+#= require_tree ./controllers
+#= require_tree ./models
+#= require_tree ./views
+#= require_tree ./lib\n
+CODE
+end
 
       private
 
@@ -75,35 +113,6 @@ module Batman
         end
       end
 
-      def route_catchall
-<<-CODE
-\n  match "(/*redirect_path)", to: "#{app_name}\#index", :constraints => { :format => 'html' }\n
-CODE
-      end
-
-ES5_REQUIRES = <<-CODE
-#= require batman/es5-shim\n
-CODE
-
-BATMAN_REQUIRES = <<-CODE
-#= require batman/batman
-#= require batman/batman.rails\n
-CODE
-
-JQUERY_REQUIRES = <<-CODE
-#= require jquery
-#= require batman/batman.jquery\n
-CODE
-
-APP_REQUIRES = <<-CODE
-#= require_self
-
-#= require_tree ./controllers
-#= require_tree ./models
-#= require_tree ./views
-#= require_tree ./lib\n
-CODE
-      end
     end
   end
 end
