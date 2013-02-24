@@ -58,10 +58,10 @@ module Batman
         with_app_name do
           application_file = File.join(app_path, "#{application_name}.js.coffee")
 
-          prepend_file application_file, es5_requires unless options[:skip_es5]
-          prepend_file application_file, batman_requires
-          prepend_file application_file, jquery_requires unless options[:skip_jquery]
           prepend_file application_file, app_requires
+          prepend_file application_file, jquery_requires unless options[:skip_jquery]
+          prepend_file application_file, batman_requires
+          prepend_file application_file, es5_requires unless options[:skip_es5]
         end
       end
 
