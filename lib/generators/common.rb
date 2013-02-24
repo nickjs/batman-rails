@@ -40,7 +40,7 @@ module Batman
       end
 
       def singular_model_name
-        singular_name.camelize
+        singular_table_name.camelize
       end
 
       module ClassMethods

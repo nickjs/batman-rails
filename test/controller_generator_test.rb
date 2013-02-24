@@ -16,6 +16,22 @@ class ControllerGeneratorTest < Rails::Generators::TestCase
     end
   end
 
+  test "controller pluralization [singular]" do
+    run_generator %w(Task index show)
+    assert_file "#{javascripts_path}/batman/controllers/task_controller.js.coffee" do |controller|
+      controller_class = Regexp.escape("class Sample.TaskController extends Sample.ApplicationController")
+      assert_match /#{controller_class}/, controller
+    end
+  end
+
+  test "controller pluralization [plural]" do
+    run_generator %w(Tasks index show)
+    assert_file "#{javascripts_path}/batman/controllers/tasks_controller.js.coffee" do |controller|
+      controller_class = Regexp.escape("class Sample.TasksController extends Sample.ApplicationController")
+      assert_match /#{controller_class}/, controller
+    end
+  end
+
   test "two word controller is camelcased" do
     run_generator %w(RegularUser index)
 

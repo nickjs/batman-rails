@@ -65,34 +65,33 @@ module Batman
         end
       end
 
-
-def route_catchall
+      def route_catchall
 <<-CODE
 \n  match "(/*redirect_path)", to: "#{app_name}\#index", :constraints => { :format => 'html' }\n
 CODE
-end
+      end
 
-def es5_requires
+      def es5_requires
 <<-CODE
 #= require batman/es5-shim\n
 CODE
-end
+      end
 
-def batman_requires
+      def batman_requires
 <<-CODE
 #= require batman/batman
 #= require batman/batman.rails\n
 CODE
-end
+      end
 
-def jquery_requires
+      def jquery_requires
 <<-CODE
 #= require jquery
 #= require batman/batman.jquery\n
 CODE
-end
+      end
 
-def app_requires
+      def app_requires
 <<-CODE
 #= require_self
 
@@ -101,7 +100,7 @@ def app_requires
 #= require_tree ./views
 #= require_tree ./lib\n
 CODE
-end
+      end
 
       private
 
