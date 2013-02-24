@@ -28,8 +28,19 @@
           <h4>Generate your resources</h4>
           <p>Nullam id dolor id nibh ultricies vehicula ut id elit. Nullam quis risus eget urna mollis ornare vel eu leo. Donec ullamcorper nulla non metus auctor fringilla. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit.</p>
 
+          <div class="highlight">
+            rails generate batman:app<br />
+            rails generate batman:scaffold Post title:string content:string<br />
+          </div>
+
           <h4>Create your bindings</h4>
           <p>Nullam id dolor id nibh ultricies vehicula ut id elit. Nullam quis risus eget urna mollis ornare vel eu leo. Donec ullamcorper nulla non metus auctor fringilla. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit.</p>
+
+          <div style="padding: 10px">
+            <span>First Name:</span><input type="text" data-bind="firstName"><br />
+            <span>Last Name:</span><input type="text" data-bind="lastName"><br />
+            <span>Hello, my name is <span data-bind="fullName"></span></span><br />
+          </div>
 
           <h4>Connect to Rails</h4>
           <p>Nullam id dolor id nibh ultricies vehicula ut id elit. Nullam quis risus eget urna mollis ornare vel eu leo. Donec ullamcorper nulla non metus auctor fringilla. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit.</p>
@@ -236,4 +247,13 @@
   a.tweet_user { margin-bottom: 5px; font-size: 13px; font-style: italic; }
 
   .listy ul { list-style: url(/assets/batman/bullet.png) inside; margin-bottom: 20px; }
+
+
+  /* ======== */
+  /* = Code = */
+  /* ======== */
+
+
+  div.highlight { background:#FFFFFF; border:1px solid #E0E0E0; font-family:"Courier New",Courier,monospace; overflow: hidden; padding: 7px; margin-bottom: 20px; }
+
 </style>
