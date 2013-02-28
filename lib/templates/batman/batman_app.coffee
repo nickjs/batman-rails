@@ -3,7 +3,6 @@ Batman.extend Batman.config,
   viewPrefix: '/assets/html'
 
 class <%= js_application_name %> extends Batman.App
-
   # @resources 'products'
   # @resources 'discounts', except: ['edit']
   # @resources 'customers', only: ['new', 'show']
