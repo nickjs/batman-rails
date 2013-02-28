@@ -1,6 +1,6 @@
 Batman.extend Batman.config,
   usePushState: true
-  viewPrefix: '/assets/batman/html'
+  viewPrefix: '/assets/html'
 
 class <%= js_application_name %> extends Batman.App
 
