@@ -16,9 +16,9 @@ require 'rails/generators/test_case'
 class Rails::Generators::TestCase
   destination File.expand_path("../tmp", File.dirname(__FILE__))
   setup :prepare_destination
-  
+
   def javascripts_path
-    "app/assets/javascripts/"
+    "app/assets/"
   end
-  
+
 end

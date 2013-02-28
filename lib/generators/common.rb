@@ -32,7 +32,7 @@ module Batman
       end
 
       def js_path
-        "app/assets/javascripts"
+        "app/assets"
       end
 
       def app_path

@@ -5,8 +5,8 @@ require 'generators/batman/app_generator'
 module AppGeneratorTests
 
   def setup
-    mkdir_p "#{destination_root}/app/assets/javascripts"
-    cp fixture(application_javascript_path), "#{destination_root}/app/assets/javascripts"
+    mkdir_p "#{destination_root}/app/assets"
+    cp fixture(application_javascript_path), "#{destination_root}/app/assets"
     Rails.application.class.stubs(:name).returns("Dummy::Application")
     super
   end
