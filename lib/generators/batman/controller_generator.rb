@@ -8,24 +8,11 @@ module Batman
       desc "This generator creates a Batman controller"
       argument :actions, :type => :array, :default => [], :banner => "action action"
 
-
-      RESERVED_JS_WORDS = %w{
-        break case catch continue debugger default delete do else finally for
-        function if in instanceof new return switch this throw try typeof var void while with
-      }
-
-      def validate_no_reserved_words
-        actions.each do |action|
-          if RESERVED_JS_WORDS.include? action
-             raise Thor::Error, "The name '#{action}' is reserved by javascript " <<
-                                "Please choose an alternative action name and run this generator again."
-          end
-        end
-      end
-
       def create_batman_controller
         with_app_name do
           template "batman/controller.coffee", "#{app_path}/controllers/#{file_name.downcase}_controller.js.coffee"
+          generate "batman:html #{plural_name} #{options[:actions].join(' ')} #{app_name_flag}"
+          generate "batman:view  #{plural_name} #{app_name_flag}"
         end
       end
     end

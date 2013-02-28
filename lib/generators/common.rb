@@ -43,6 +43,11 @@ module Batman
         singular_table_name.camelize
       end
 
+      def app_name_flag
+        return if app_name == 'batman'
+        "--app_name #{options[:app_name] || app_name}"
+      end
+
       module ClassMethods
         def requires_app_name
           class_option :app_name, :type => :string, :optional => true,
