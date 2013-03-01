@@ -49,8 +49,20 @@ class ModelGeneratorTest < Rails::Generators::TestCase
     end
   end
 
-  test "simple model with app_name" do
+  test "simple model with app_nam and created_at date" do
     run_generator %w(Task title:string created_at:date --app_name MyApp)
+
+    assert_file "#{javascripts_path}/MyApp/models/task.js.coffee" do |model|
+      model_class = Regexp.escape("class MyApp.Task extends Batman.Model")
+
+      assert_match /#{model_class}/, model
+      assert_match /@encode 'title'/, model
+      assert_match /@encode 'created_at', Batman.Encoders.railsDate/, model
+    end
+  end
+
+  test "simple model with duck-typing" do
+    run_generator %w(Task title created_at:date --app_name MyApp)
 
     assert_file "#{javascripts_path}/MyApp/models/task.js.coffee" do |model|
       model_class = Regexp.escape("class MyApp.Task extends Batman.Model")
