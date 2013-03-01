@@ -45,6 +45,7 @@ class ModelGeneratorTest < Rails::Generators::TestCase
       assert_match /#{model_class}/, model
 
       assert_match /@storageKey: 'regular_users'/, model
+      assert_match /@encode 'name'/, model
     end
   end
 
@@ -55,6 +56,8 @@ class ModelGeneratorTest < Rails::Generators::TestCase
       model_class = Regexp.escape("class MyApp.Task extends Batman.Model")
 
       assert_match /#{model_class}/, model
+      assert_match /@encode 'title'/, model
+      assert_match /@encode 'created_at', Batman.Encoders.railsDate/, model
     end
   end
 end
