@@ -1,6 +1,6 @@
 # Batman-Rails
 
-Easily setup and use batman.js (0.13.1) with rails 3.1
+Easily setup and use batman.js (0.14.1) with rails 3.1/3.2
 
 ## Rails 3.1 setup
 This gem requires the use of rails 3.1, coffeescript and the new rails asset pipeline provided by sprockets.

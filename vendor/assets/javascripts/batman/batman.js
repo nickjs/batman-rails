@@ -12,10 +12,12 @@
     })(Batman.Object, mixins, function(){});
   };
 
-  Batman.version = '0.13.0';
+  Batman.version = '0.14.1';
 
   Batman.config = {
     pathPrefix: '/',
+    viewPrefix: 'views',
+    fetchRemoteViews: true,
     usePushState: false,
     minificationErrors: true
   };
@@ -47,7 +49,119 @@
 }).call(this);
 
 (function() {
-  var _implementImmediates, _objectToString,
+  var _Batman;
+
+  Batman._Batman = _Batman = (function() {
+
+    function _Batman(object) {
+      this.object = object;
+    }
+
+    _Batman.prototype.check = function(object) {
+      if (object !== this.object) {
+        object._batman = new Batman._Batman(object);
+        return false;
+      }
+      return true;
+    };
+
+    _Batman.prototype.get = function(key) {
+      var reduction, results;
+      results = this.getAll(key);
+      switch (results.length) {
+        case 0:
+          return void 0;
+        case 1:
+          return results[0];
+        default:
+          reduction = results[0].concat != null ? function(a, b) {
+            return a.concat(b);
+          } : results[0].merge != null ? function(a, b) {
+            return a.merge(b);
+          } : results.every(function(x) {
+            return typeof x === 'object';
+          }) ? (results.unshift({}), function(a, b) {
+            return Batman.extend(a, b);
+          }) : void 0;
+          if (reduction) {
+            return results.reduceRight(reduction);
+          } else {
+            return results;
+          }
+      }
+    };
+
+    _Batman.prototype.getFirst = function(key) {
+      var results;
+      results = this.getAll(key);
+      return results[0];
+    };
+
+    _Batman.prototype.getAll = function(keyOrGetter) {
+      var getter, results, val;
+      if (typeof keyOrGetter === 'function') {
+        getter = keyOrGetter;
+      } else {
+        getter = function(ancestor) {
+          var _ref;
+          return (_ref = ancestor._batman) != null ? _ref[keyOrGetter] : void 0;
+        };
+      }
+      results = this.ancestors(getter);
+      if (val = getter(this.object)) {
+        results.unshift(val);
+      }
+      return results;
+    };
+
+    _Batman.prototype.ancestors = function(getter) {
+      var ancestor, results, val, _i, _len, _ref;
+      this._allAncestors || (this._allAncestors = this.allAncestors());
+      if (getter) {
+        results = [];
+        _ref = this._allAncestors;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          ancestor = _ref[_i];
+          val = getter(ancestor);
+          if (val != null) {
+            results.push(val);
+          }
+        }
+        return results;
+      } else {
+        return this._allAncestors;
+      }
+    };
+
+    _Batman.prototype.allAncestors = function() {
+      var isClass, parent, proto, results, _ref, _ref1;
+      results = [];
+      isClass = !!this.object.prototype;
+      parent = isClass ? (_ref = this.object.__super__) != null ? _ref.constructor : void 0 : (proto = Object.getPrototypeOf(this.object)) === this.object ? this.object.constructor.__super__ : proto;
+      if (parent != null) {
+        if ((_ref1 = parent._batman) != null) {
+          _ref1.check(parent);
+        }
+        results.push(parent);
+        if (parent._batman != null) {
+          results = results.concat(parent._batman.allAncestors());
+        }
+      }
+      return results;
+    };
+
+    _Batman.prototype.set = function(key, value) {
+      return this[key] = value;
+    };
+
+    return _Batman;
+
+  })();
+
+}).call(this);
+
+(function() {
+  var chr, _encodedChars, _encodedCharsPattern, _entityMap, _implementImmediates, _objectToString, _unsafeChars, _unsafeCharsPattern,
     __slice = [].slice,
     __hasProp = {}.hasOwnProperty,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -145,8 +259,6 @@
     return false;
   };
 
-  Batman.setImmediate = Batman.clearImmediate = null;
-
   _implementImmediates = function(container) {
     var canUsePostMessage, count, functions, getHandle, handler, prefix, tasks;
     canUsePostMessage = function() {
@@ -168,12 +280,9 @@
     getHandle = function() {
       return "go" + (++count);
     };
-    if (container.setImmediate) {
+    if (container.setImmediate && container.clearImmediate) {
       Batman.setImmediate = container.setImmediate;
-      Batman.clearImmediate = container.clearImmediate;
-    } else if (container.msSetImmediate) {
-      Batman.setImmediate = msSetImmediate;
-      Batman.clearImmediate = msClearImmediate;
+      return Batman.clearImmediate = container.clearImmediate;
     } else if (canUsePostMessage()) {
       prefix = 'com.batman.';
       functions = new Batman.SimpleHash;
@@ -196,7 +305,7 @@
         container.postMessage(prefix + handle, "*");
         return handle;
       };
-      Batman.clearImmediate = function(handle) {
+      return Batman.clearImmediate = function(handle) {
         return tasks.unset(handle);
       };
     } else if (typeof document !== 'undefined' && __indexOf.call(document.createElement("script"), "onreadystatechange") >= 0) {
@@ -216,7 +325,7 @@
         document.documentElement.appendChild(script);
         return handle;
       };
-      Batman.clearImmediate = function(handle) {
+      return Batman.clearImmediate = function(handle) {
         return tasks.unset(handle);
       };
     } else if (typeof process !== "undefined" && process !== null ? process.nextTick : void 0) {
@@ -233,19 +342,17 @@
         });
         return handle;
       };
-      Batman.clearImmediate = function(handle) {
+      return Batman.clearImmediate = function(handle) {
         return delete functions[handle];
       };
     } else {
       Batman.setImmediate = function(f) {
         return setTimeout(f, 0);
       };
-      Batman.clearImmediate = function(handle) {
+      return Batman.clearImmediate = function(handle) {
         return clearTimeout(handle);
       };
     }
-    Batman.setImmediate = Batman.setImmediate;
-    return Batman.clearImmediate = Batman.clearImmediate;
   };
 
   Batman.setImmediate = function() {
@@ -321,19 +428,48 @@
     return base;
   };
 
+  _entityMap = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&#34;",
+    "'": "&#39;"
+  };
+
+  _unsafeChars = [];
+
+  _encodedChars = [];
+
+  for (chr in _entityMap) {
+    _unsafeChars.push(chr);
+    _encodedChars.push(_entityMap[chr]);
+  }
+
+  _unsafeCharsPattern = new RegExp("[" + (_unsafeChars.join('')) + "]", "g");
+
+  _encodedCharsPattern = new RegExp("(" + (_encodedChars.join('|')) + ")", "g");
+
   Batman.escapeHTML = (function() {
-    var replacements;
-    replacements = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      "\"": "&#34;",
-      "'": "&#39;"
-    };
     return function(s) {
-      return ("" + s).replace(/[&<>'"]/g, function(c) {
-        return replacements[c];
+      return ("" + s).replace(_unsafeCharsPattern, function(c) {
+        return _entityMap[c];
       });
+    };
+  })();
+
+  Batman.unescapeHTML = (function() {
+    return function(s) {
+      var node;
+      if (s == null) {
+        return;
+      }
+      node = Batman._unescapeHTMLNode || (Batman._unescapeHTMLNode = document.createElement('DIV'));
+      node.innerHTML = s;
+      if (node.innerText != null) {
+        return node.innerText;
+      } else {
+        return node.textContent;
+      }
     };
   })();
 
@@ -778,113 +914,15 @@
           return value;
         }
       });
+    },
+    deprecated: function(deprecatedName, upgradeString) {
+      return Batman.developer.warn("" + deprecatedName + " has been deprecated.", upgradeString || '');
     }
   };
 
   developer = Batman.developer;
 
   Batman.developer.assert((function() {}).bind, "Error! Batman needs Function.bind to work! Please shim it using something like es5-shim or augmentjs!");
-
-}).call(this);
-
-(function() {
-  var _Batman;
-
-  Batman._Batman = _Batman = (function() {
-
-    function _Batman(object) {
-      this.object = object;
-    }
-
-    _Batman.prototype.check = function(object) {
-      if (object !== this.object) {
-        object._batman = new Batman._Batman(object);
-        return false;
-      }
-      return true;
-    };
-
-    _Batman.prototype.get = function(key) {
-      var reduction, results;
-      results = this.getAll(key);
-      switch (results.length) {
-        case 0:
-          return void 0;
-        case 1:
-          return results[0];
-        default:
-          reduction = results[0].concat != null ? function(a, b) {
-            return a.concat(b);
-          } : results[0].merge != null ? function(a, b) {
-            return a.merge(b);
-          } : results.every(function(x) {
-            return typeof x === 'object';
-          }) ? (results.unshift({}), function(a, b) {
-            return Batman.extend(a, b);
-          }) : void 0;
-          if (reduction) {
-            return results.reduceRight(reduction);
-          } else {
-            return results;
-          }
-      }
-    };
-
-    _Batman.prototype.getFirst = function(key) {
-      var results;
-      results = this.getAll(key);
-      return results[0];
-    };
-
-    _Batman.prototype.getAll = function(keyOrGetter) {
-      var getter, results, val;
-      if (typeof keyOrGetter === 'function') {
-        getter = keyOrGetter;
-      } else {
-        getter = function(ancestor) {
-          var _ref;
-          return (_ref = ancestor._batman) != null ? _ref[keyOrGetter] : void 0;
-        };
-      }
-      results = this.ancestors(getter);
-      if (val = getter(this.object)) {
-        results.unshift(val);
-      }
-      return results;
-    };
-
-    _Batman.prototype.ancestors = function(getter) {
-      var isClass, parent, proto, results, val, _ref, _ref1;
-      if (getter == null) {
-        getter = function(x) {
-          return x;
-        };
-      }
-      results = [];
-      isClass = !!this.object.prototype;
-      parent = isClass ? (_ref = this.object.__super__) != null ? _ref.constructor : void 0 : (proto = Object.getPrototypeOf(this.object)) === this.object ? this.object.constructor.__super__ : proto;
-      if (parent != null) {
-        if ((_ref1 = parent._batman) != null) {
-          _ref1.check(parent);
-        }
-        val = getter(parent);
-        if (val != null) {
-          results.push(val);
-        }
-        if (parent._batman != null) {
-          results = results.concat(parent._batman.ancestors(getter));
-        }
-      }
-      return results;
-    };
-
-    _Batman.prototype.set = function(key, value) {
-      return this[key] = value;
-    };
-
-    return _Batman;
-
-  })();
 
 }).call(this);
 
@@ -903,7 +941,6 @@
     function Event(base, key) {
       this.base = base;
       this.key = key;
-      this.handlers = [];
       this._preventCount = 0;
     }
 
@@ -922,6 +959,7 @@
     };
 
     Event.prototype.addHandler = function(handler) {
+      this.handlers || (this.handlers = []);
       if (this.handlers.indexOf(handler) === -1) {
         this.handlers.push(handler);
       }
@@ -933,29 +971,35 @@
 
     Event.prototype.removeHandler = function(handler) {
       var index;
-      if ((index = this.handlers.indexOf(handler)) !== -1) {
+      if (this.handlers && (index = this.handlers.indexOf(handler)) !== -1) {
         this.handlers.splice(index, 1);
       }
       return this;
     };
 
     Event.prototype.eachHandler = function(iterator) {
-      var key, _ref, _ref1;
-      this.handlers.slice().forEach(iterator);
-      if ((_ref = this.base) != null ? _ref.isEventEmitter : void 0) {
+      var ancestor, key, _i, _len, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _results;
+      if ((_ref = this.handlers) != null) {
+        _ref.slice().forEach(iterator);
+      }
+      if ((_ref1 = this.base) != null ? _ref1.isEventEmitter : void 0) {
         key = this.key;
-        return (_ref1 = this.base._batman) != null ? _ref1.ancestors(function(ancestor) {
-          var handlers, _ref2, _ref3;
-          if (ancestor.isEventEmitter && ((_ref2 = ancestor._batman) != null ? (_ref3 = _ref2.events) != null ? _ref3.hasOwnProperty(key) : void 0 : void 0)) {
-            handlers = ancestor.event(key).handlers;
-            return handlers.slice().forEach(iterator);
+        _ref3 = (_ref2 = this.base._batman) != null ? _ref2.ancestors() : void 0;
+        _results = [];
+        for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+          ancestor = _ref3[_i];
+          if (ancestor.isEventEmitter && ((_ref4 = ancestor._batman) != null ? (_ref5 = _ref4.events) != null ? _ref5.hasOwnProperty(key) : void 0 : void 0)) {
+            _results.push((_ref6 = ancestor.event(key, false)) != null ? (_ref7 = _ref6.handlers) != null ? _ref7.slice().forEach(iterator) : void 0 : void 0);
+          } else {
+            _results.push(void 0);
           }
-        }) : void 0;
+        }
+        return _results;
       }
     };
 
     Event.prototype.clearHandlers = function() {
-      return this.handlers = [];
+      return this.handlers = void 0;
     };
 
     Event.prototype.handlerContext = function() {
@@ -989,15 +1033,16 @@
     };
 
     Event.prototype.fire = function() {
-      var args, context;
+      return this.fireWithContext(this.handlerContext(), arguments);
+    };
+
+    Event.prototype.fireWithContext = function(context, args) {
       if (this.isPrevented() || this._oneShotFired) {
         return false;
       }
-      context = this.handlerContext();
-      args = arguments;
       if (this.oneShot) {
         this._oneShotFired = true;
-        this._oneShotArgs = arguments;
+        this._oneShotArgs = args;
       }
       return this.eachHandler(function(handler) {
         return handler.apply(context, args);
@@ -1005,8 +1050,12 @@
     };
 
     Event.prototype.allowAndFire = function() {
+      return this.allowAndFireWithContext(this.handlerContext, arguments);
+    };
+
+    Event.prototype.allowAndFireWithContext = function(context, args) {
       this.allow();
-      return this.fire.apply(this, arguments);
+      return this.fireWithContext(context, args);
     };
 
     return Event;
@@ -1050,21 +1099,32 @@
       var _ref, _ref1;
       return (_ref = this._batman) != null ? typeof _ref.get === "function" ? (_ref1 = _ref.get('events')) != null ? _ref1.hasOwnProperty(key) : void 0 : void 0 : void 0;
     },
-    event: function(key) {
-      var eventClass, events, existingEvent, newEvent, _base;
+    event: function(key, createEvent) {
+      var ancestor, eventClass, events, existingEvent, newEvent, _base, _i, _len, _ref, _ref1, _ref2, _ref3;
+      if (createEvent == null) {
+        createEvent = true;
+      }
       Batman.initializeObject(this);
       eventClass = this.eventClass || Batman.Event;
-      events = (_base = this._batman).events || (_base.events = {});
-      if (events.hasOwnProperty(key)) {
-        return existingEvent = events[key];
+      if ((_ref = this._batman.events) != null ? _ref.hasOwnProperty(key) : void 0) {
+        return existingEvent = this._batman.events[key];
       } else {
-        this._batman.ancestors(function(ancestor) {
-          var _ref, _ref1;
-          return existingEvent || (existingEvent = (_ref = ancestor._batman) != null ? (_ref1 = _ref.events) != null ? _ref1[key] : void 0 : void 0);
-        });
-        newEvent = events[key] = new eventClass(this, key);
-        newEvent.oneShot = existingEvent != null ? existingEvent.oneShot : void 0;
-        return newEvent;
+        _ref1 = this._batman.ancestors();
+        for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+          ancestor = _ref1[_i];
+          existingEvent = (_ref2 = ancestor._batman) != null ? (_ref3 = _ref2.events) != null ? _ref3[key] : void 0 : void 0;
+          if (existingEvent) {
+            break;
+          }
+        }
+        if (createEvent || (existingEvent != null ? existingEvent.oneShot : void 0)) {
+          events = (_base = this._batman).events || (_base.events = {});
+          newEvent = events[key] = new eventClass(this, key);
+          newEvent.oneShot = existingEvent != null ? existingEvent.oneShot : void 0;
+          return newEvent;
+        } else {
+          return existingEvent;
+        }
       }
     },
     on: function() {
@@ -1091,9 +1151,11 @@
     },
     mutation: function(wrappedFunction) {
       return function() {
-        var result;
+        var result, _ref;
         result = wrappedFunction.apply(this, arguments);
-        this.event('change').fire(this, this);
+        if ((_ref = this.event('change', false)) != null) {
+          _ref.fire(this, this);
+        }
         return result;
       };
     },
@@ -1106,17 +1168,18 @@
       return this;
     },
     isPrevented: function(key) {
-      return this.event(key).isPrevented();
+      var _ref;
+      return (_ref = this.event(key, false)) != null ? _ref.isPrevented() : void 0;
     },
     fire: function() {
       var args, key, _ref;
       key = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-      return (_ref = this.event(key)).fire.apply(_ref, args);
+      return (_ref = this.event(key, false)) != null ? _ref.fireWithContext(this, args) : void 0;
     },
     allowAndFire: function() {
       var args, key, _ref;
       key = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-      return (_ref = this.event(key)).allowAndFire.apply(_ref, args);
+      return (_ref = this.event(key, false)) != null ? _ref.allowAndFireWithContext(this, args) : void 0;
     }
   };
 
@@ -1128,109 +1191,118 @@
   Batman.Enumerable = {
     isEnumerable: true,
     map: function(f, ctx) {
-      var r;
+      var result;
       if (ctx == null) {
         ctx = Batman.container;
       }
-      r = [];
+      result = [];
       this.forEach(function() {
-        return r.push(f.apply(ctx, arguments));
+        return result.push(f.apply(ctx, arguments));
       });
-      return r;
+      return result;
     },
     mapToProperty: function(key) {
-      var r;
-      r = [];
+      var result;
+      result = [];
       this.forEach(function(item) {
-        return r.push(item.get(key));
+        return result.push(item.get(key));
       });
-      return r;
+      return result;
     },
     every: function(f, ctx) {
-      var r;
+      var result;
       if (ctx == null) {
         ctx = Batman.container;
       }
-      r = true;
+      result = true;
       this.forEach(function() {
-        return r = r && f.apply(ctx, arguments);
+        return result = result && f.apply(ctx, arguments);
       });
-      return r;
+      return result;
     },
     some: function(f, ctx) {
-      var r;
+      var result;
       if (ctx == null) {
         ctx = Batman.container;
       }
-      r = false;
+      result = false;
       this.forEach(function() {
-        return r = r || f.apply(ctx, arguments);
+        return result = result || f.apply(ctx, arguments);
       });
-      return r;
+      return result;
     },
-    reduce: function(f, r) {
-      var count, self;
+    reduce: function(f, accumulator) {
+      var count, initialValuePassed, self;
       count = 0;
       self = this;
+      if (accumulator != null) {
+        initialValuePassed = true;
+      } else {
+        initialValuePassed = false;
+      }
       this.forEach(function() {
-        if (r != null) {
-          return r = f.apply(null, [r].concat(__slice.call(arguments), [count], [self]));
-        } else {
-          return r = arguments[0];
+        if (!initialValuePassed) {
+          accumulator = arguments[0];
+          initialValuePassed = true;
+          return;
         }
+        return accumulator = f.apply(null, [accumulator].concat(__slice.call(arguments), [count], [self]));
       });
-      return r;
+      return accumulator;
     },
     filter: function(f) {
-      var r, wrap;
-      r = new this.constructor;
-      if (r.add) {
-        wrap = function(r, e) {
-          if (f(e)) {
-            r.add(e);
+      var result, wrap;
+      result = new this.constructor;
+      if (result.add) {
+        wrap = function(result, element) {
+          if (f(element)) {
+            result.add(element);
           }
-          return r;
+          return result;
         };
-      } else if (r.set) {
-        wrap = function(r, k, v) {
-          if (f(k, v)) {
-            r.set(k, v);
+      } else if (result.set) {
+        wrap = function(result, key, value) {
+          if (f(key, value)) {
+            result.set(key, value);
           }
-          return r;
+          return result;
         };
       } else {
-        if (!r.push) {
-          r = [];
+        if (!result.push) {
+          result = [];
         }
-        wrap = function(r, e) {
-          if (f(e)) {
-            r.push(e);
+        wrap = function(result, element) {
+          if (f(element)) {
+            result.push(element);
           }
-          return r;
+          return result;
         };
       }
-      return this.reduce(wrap, r);
+      return this.reduce(wrap, result);
     },
-    inGroupsOf: function(n) {
-      var current, i, r;
-      r = [];
+    inGroupsOf: function(groupSize) {
+      var current, i, result;
+      result = [];
       current = false;
       i = 0;
-      this.forEach(function(x) {
-        if (i++ % n === 0) {
+      this.forEach(function(element) {
+        if (i++ % groupSize === 0) {
           current = [];
-          r.push(current);
+          result.push(current);
         }
-        return current.push(x);
+        return current.push(element);
       });
-      return r;
+      return result;
     }
   };
 
 }).call(this);
 
 (function() {
-  var __slice = [].slice;
+  var _objectToString,
+    __slice = [].slice;
+
+  _objectToString = Object.prototype.toString;
 
   Batman.SimpleHash = (function() {
 
@@ -1243,8 +1315,6 @@
     }
 
     Batman.extend(SimpleHash.prototype, Batman.Enumerable);
-
-    SimpleHash.prototype.propertyClass = Batman.Property;
 
     SimpleHash.prototype.hasKey = function(key) {
       var pair, pairs, _i, _len;
@@ -1359,7 +1429,17 @@
     };
 
     SimpleHash.prototype.hashKeyFor = function(obj) {
-      return (obj != null ? typeof obj.hashKey === "function" ? obj.hashKey() : void 0 : void 0) || obj;
+      var hashKey, typeString;
+      if (hashKey = obj != null ? typeof obj.hashKey === "function" ? obj.hashKey() : void 0 : void 0) {
+        return hashKey;
+      } else {
+        typeString = _objectToString.call(obj);
+        if (typeString === "[object Array]") {
+          return typeString;
+        } else {
+          return obj;
+        }
+      }
     };
 
     SimpleHash.prototype.equality = function(lhs, rhs) {
@@ -1557,10 +1637,22 @@
   Batman.SimpleSet = (function() {
 
     function SimpleSet() {
+      var item, itemsToAdd;
       this._storage = [];
       this.length = 0;
-      if (arguments.length > 0) {
-        this.add.apply(this, arguments);
+      itemsToAdd = (function() {
+        var _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = arguments.length; _i < _len; _i++) {
+          item = arguments[_i];
+          if (item != null) {
+            _results.push(item);
+          }
+        }
+        return _results;
+      }).apply(this, arguments);
+      if (itemsToAdd.length > 0) {
+        this.add.apply(this, itemsToAdd);
       }
     }
 
@@ -1622,11 +1714,14 @@
     };
 
     SimpleSet.prototype.forEach = function(iterator, ctx) {
-      var container;
-      container = this;
-      return this._storage.slice().forEach(function(key) {
-        return iterator.call(ctx, key, null, container);
-      });
+      var key, _i, _len, _ref, _results;
+      _ref = this._storage;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        key = _ref[_i];
+        _results.push(iterator.call(ctx, key, null, this));
+      }
+      return _results;
     };
 
     SimpleSet.prototype.isEmpty = function() {
@@ -1719,18 +1814,20 @@
 }).call(this);
 
 (function() {
-  var __slice = [].slice;
+  var SOURCE_TRACKER_STACK, SOURCE_TRACKER_STACK_VALID,
+    __slice = [].slice;
+
+  SOURCE_TRACKER_STACK = [];
+
+  SOURCE_TRACKER_STACK_VALID = true;
 
   Batman.Property = (function() {
 
     Batman.mixin(Property.prototype, Batman.EventEmitter);
 
-    Property._sourceTrackerStack = [];
+    Property._sourceTrackerStack = SOURCE_TRACKER_STACK;
 
-    Property.sourceTracker = function() {
-      var stack;
-      return (stack = this._sourceTrackerStack)[stack.length - 1];
-    };
+    Property._sourceTrackerStackValid = SOURCE_TRACKER_STACK_VALID;
 
     Property.defaultAccessor = {
       get: function(key) {
@@ -1754,15 +1851,18 @@
     };
 
     Property.accessorForBaseAndKey = function(base, key) {
-      var accessor, _bm, _ref,
-        _this = this;
+      var accessor, ancestor, _bm, _i, _len, _ref, _ref1, _ref2, _ref3;
       if ((_bm = base._batman) != null) {
         accessor = (_ref = _bm.keyAccessors) != null ? _ref.get(key) : void 0;
         if (!accessor) {
-          _bm.ancestors(function(ancestor) {
-            var _ref1, _ref2;
-            return accessor || (accessor = (_ref1 = ancestor._batman) != null ? (_ref2 = _ref1.keyAccessors) != null ? _ref2.get(key) : void 0 : void 0);
-          });
+          _ref1 = _bm.ancestors();
+          for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+            ancestor = _ref1[_i];
+            accessor = (_ref2 = ancestor._batman) != null ? (_ref3 = _ref2.keyAccessors) != null ? _ref3.get(key) : void 0 : void 0;
+            if (accessor) {
+              break;
+            }
+          }
         }
       }
       return accessor || this.defaultAccessorForBase(base);
@@ -1792,23 +1892,46 @@
     };
 
     Property.registerSource = function(obj) {
-      var _ref;
+      var set;
       if (!obj.isEventEmitter) {
         return;
       }
-      return (_ref = this.sourceTracker()) != null ? _ref.add(obj) : void 0;
+      if (SOURCE_TRACKER_STACK_VALID) {
+        set = SOURCE_TRACKER_STACK[SOURCE_TRACKER_STACK.length - 1];
+      } else {
+        set = [];
+        SOURCE_TRACKER_STACK.push(set);
+        SOURCE_TRACKER_STACK_VALID = true;
+      }
+      if (set != null) {
+        set.push(obj);
+      }
+      return void 0;
     };
 
     Property.pushSourceTracker = function() {
-      return Batman.Property._sourceTrackerStack.push(new Batman.SimpleSet);
-    };
-
-    Property.pushDummySourceTracker = function() {
-      return Batman.Property._sourceTrackerStack.push(null);
+      if (SOURCE_TRACKER_STACK_VALID) {
+        return SOURCE_TRACKER_STACK_VALID = false;
+      } else {
+        return SOURCE_TRACKER_STACK.push([]);
+      }
     };
 
     Property.popSourceTracker = function() {
-      return Batman.Property._sourceTrackerStack.pop();
+      if (SOURCE_TRACKER_STACK_VALID) {
+        return SOURCE_TRACKER_STACK.pop();
+      } else {
+        SOURCE_TRACKER_STACK_VALID = true;
+        return void 0;
+      }
+    };
+
+    Property.pushDummySourceTracker = function() {
+      if (!SOURCE_TRACKER_STACK_VALID) {
+        SOURCE_TRACKER_STACK.push([]);
+        SOURCE_TRACKER_STACK_VALID = true;
+      }
+      return SOURCE_TRACKER_STACK.push(null);
     };
 
     function Property(base, key) {
@@ -1835,11 +1958,7 @@
     };
 
     Property.prototype.hashKey = function() {
-      var key;
-      this.hashKey = function() {
-        return key;
-      };
-      return key = "<Batman.Property base: " + (Batman.Hash.prototype.hashKeyFor(this.base)) + ", key: \"" + (Batman.Hash.prototype.hashKeyFor(this.key)) + "\">";
+      return this._hashKey || (this._hashKey = "<Batman.Property base: " + (Batman.Hash.prototype.hashKeyFor(this.base)) + ", key: \"" + (Batman.Hash.prototype.hashKeyFor(this.key)) + "\">");
     };
 
     Property.prototype.event = function(key) {
@@ -1851,36 +1970,49 @@
     };
 
     Property.prototype.changeEvent = function() {
-      var event;
-      event = this.event('change');
-      this.changeEvent = function() {
-        return event;
-      };
-      return event;
+      return this._changeEvent || (this._changeEvent = this.event('change'));
     };
 
     Property.prototype.accessor = function() {
-      var accessor;
-      accessor = this.constructor.accessorForBaseAndKey(this.base, this.key);
-      this.accessor = function() {
-        return accessor;
-      };
-      return accessor;
+      return this._accessor || (this._accessor = this.constructor.accessorForBaseAndKey(this.base, this.key));
     };
 
     Property.prototype.eachObserver = function(iterator) {
-      var key;
+      var ancestor, handlers, key, object, property, _i, _j, _len, _len1, _ref, _ref1, _ref2, _results;
       key = this.key;
-      this.changeEvent().handlers.slice().forEach(iterator);
+      handlers = (_ref = this.changeEvent().handlers) != null ? _ref.slice() : void 0;
+      if (handlers) {
+        for (_i = 0, _len = handlers.length; _i < _len; _i++) {
+          object = handlers[_i];
+          iterator(object);
+        }
+      }
       if (this.base.isObservable) {
-        return this.base._batman.ancestors(function(ancestor) {
-          var handlers, property;
+        _ref1 = this.base._batman.ancestors();
+        _results = [];
+        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+          ancestor = _ref1[_j];
           if (ancestor.isObservable && ancestor.hasProperty(key)) {
             property = ancestor.property(key);
-            handlers = property.changeEvent().handlers;
-            return handlers.slice().forEach(iterator);
+            handlers = (_ref2 = property.changeEvent().handlers) != null ? _ref2.slice() : void 0;
+            if (handlers) {
+              _results.push((function() {
+                var _k, _len2, _results1;
+                _results1 = [];
+                for (_k = 0, _len2 = handlers.length; _k < _len2; _k++) {
+                  object = handlers[_k];
+                  _results1.push(iterator(object));
+                }
+                return _results1;
+              })());
+            } else {
+              _results.push(void 0);
+            }
+          } else {
+            _results.push(void 0);
           }
-        });
+        }
+        return _results;
       }
     };
 
@@ -1898,25 +2030,28 @@
     };
 
     Property.prototype.updateSourcesFromTracker = function() {
-      var handler, newSources;
+      var handler, newSources, source, _i, _j, _len, _len1, _ref, _ref1, _results;
       newSources = this.constructor.popSourceTracker();
       handler = this.sourceChangeHandler();
-      this._eachSourceChangeEvent(function(e) {
-        return e.removeHandler(handler);
-      });
-      this.sources = newSources;
-      return this._eachSourceChangeEvent(function(e) {
-        return e.addHandler(handler);
-      });
-    };
-
-    Property.prototype._eachSourceChangeEvent = function(iterator) {
-      if (this.sources == null) {
-        return;
+      if (this.sources) {
+        _ref = this.sources;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          source = _ref[_i];
+          if (source != null) {
+            source.event('change').removeHandler(handler);
+          }
+        }
       }
-      return this.sources.forEach(function(source) {
-        return iterator(source.event('change'));
-      });
+      this.sources = newSources;
+      if (this.sources) {
+        _ref1 = this.sources;
+        _results = [];
+        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+          source = _ref1[_j];
+          _results.push(source != null ? source.event('change').addHandler(handler) : void 0);
+        }
+        return _results;
+      }
     };
 
     Property.prototype.getValue = function() {
@@ -1968,16 +2103,12 @@
     };
 
     Property.prototype.sourceChangeHandler = function() {
-      var handler,
-        _this = this;
-      handler = this._handleSourceChange.bind(this);
+      var _this = this;
+      this._sourceChangeHandler || (this._sourceChangeHandler = this._handleSourceChange.bind(this));
       Batman.developer["do"](function() {
-        return handler.property = _this;
+        return _this._sourceChangeHandler.property = _this;
       });
-      this.sourceChangeHandler = function() {
-        return handler;
-      };
-      return handler;
+      return this._sourceChangeHandler;
     };
 
     Property.prototype._handleSourceChange = function() {
@@ -2067,11 +2198,15 @@
     };
 
     Property.prototype._removeHandlers = function() {
-      var handler;
+      var handler, source, _i, _len, _ref;
       handler = this.sourceChangeHandler();
-      this._eachSourceChangeEvent(function(e) {
-        return e.removeHandler(handler);
-      });
+      if (this.sources) {
+        _ref = this.sources;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          source = _ref[_i];
+          source.event('change').removeHandler(handler);
+        }
+      }
       delete this.sources;
       return this.changeEvent().clearHandlers();
     };
@@ -2339,10 +2474,10 @@
       return contents;
     },
     setStyleProperty: function(node, property, value, importance) {
-      if (node.style.setAttribute) {
-        return node.style.setAttribute(property, value, importance);
-      } else {
+      if (node.style.setProperty) {
         return node.style.setProperty(property, value, importance);
+      } else {
+        return node.style.setAttribute(property, value, importance);
       }
     },
     removeOrDestroyNode: function(node) {
@@ -2534,16 +2669,7 @@
       var bindings, child, eventListeners, eventName, listeners, view, _i, _len, _ref;
       view = Batman._data(node, 'view');
       if (view) {
-        view.fire('destroy', node);
-        view.get('yields').forEach(function(name, actions) {
-          var _i, _len, _results;
-          _results = [];
-          for (_i = 0, _len = actions.length; _i < _len; _i++) {
-            node = actions[_i].node;
-            _results.push(Batman.DOM.didDestroyNode(node));
-          }
-          return _results;
-        });
+        view.die();
       }
       if (bindings = Batman._data(node, 'bindings')) {
         bindings.forEach(function(binding) {
@@ -2576,25 +2702,45 @@
 }).call(this);
 
 (function() {
-  var __slice = [].slice;
+
+  Batman.DOM.ReaderBindingDefinition = (function() {
+
+    function ReaderBindingDefinition(node, keyPath, context, renderer) {
+      this.node = node;
+      this.keyPath = keyPath;
+      this.context = context;
+      this.renderer = renderer;
+    }
+
+    return ReaderBindingDefinition;
+
+  })();
+
+  Batman.BindingDefinitionOnlyObserve = {
+    Data: 'data',
+    Node: 'node',
+    All: 'all',
+    None: 'none'
+  };
 
   Batman.DOM.readers = {
-    target: function(node, key, context, renderer) {
-      Batman.DOM.readers.bind(node, key, context, renderer, 'nodeChange');
-      return true;
+    target: function(definition) {
+      definition.onlyObserve = Batman.BindingDefinitionOnlyObserve.Node;
+      return Batman.DOM.readers.bind(definition);
     },
-    source: function(node, key, context, renderer) {
-      Batman.DOM.readers.bind(node, key, context, renderer, 'dataChange');
-      return true;
+    source: function(definition) {
+      definition.onlyObserve = Batman.BindingDefinitionOnlyObserve.Data;
+      return Batman.DOM.readers.bind(definition);
     },
-    bind: function(node, key, context, renderer, only) {
-      var bindingClass;
-      bindingClass = false;
+    bind: function(definition) {
+      var bindingClass, node;
+      node = definition.node;
       switch (node.nodeName.toLowerCase()) {
         case 'input':
           switch (node.getAttribute('type')) {
             case 'checkbox':
-              Batman.DOM.attrReaders.bind(node, 'checked', key, context, renderer, only);
+              definition.attr = 'checked';
+              Batman.DOM.attrReaders.bind(definition);
               return true;
             case 'radio':
               bindingClass = Batman.DOM.RadioBinding;
@@ -2606,91 +2752,76 @@
         case 'select':
           bindingClass = Batman.DOM.SelectBinding;
       }
-      bindingClass || (bindingClass = Batman.DOM.Binding);
-      (function(func, args, ctor) {
-        ctor.prototype = func.prototype;
-        var child = new ctor, result = func.apply(child, args), t = typeof result;
-        return t == "object" || t == "function" ? result || child : child;
-      })(bindingClass, arguments, function(){});
-      return true;
+      bindingClass || (bindingClass = Batman.DOM.ValueBinding);
+      return new bindingClass(definition);
     },
-    context: function(node, key, context, renderer) {
-      return context.descendWithKey(key);
+    context: function(definition) {
+      return definition.context.descendWithDefinition(definition);
     },
-    mixin: function(node, key, context, renderer) {
-      new Batman.DOM.MixinBinding(node, key, context.descend(Batman.mixins), renderer);
-      return true;
+    mixin: function(definition) {
+      definition.context = definition.context.descend(Batman.mixins);
+      return new Batman.DOM.MixinBinding(definition);
     },
-    showif: function(node, key, context, parentRenderer, invert) {
-      new Batman.DOM.ShowHideBinding(node, key, context, parentRenderer, false, invert);
-      return true;
+    showif: function(definition) {
+      return new Batman.DOM.ShowHideBinding(definition);
     },
-    hideif: function() {
-      var _ref;
-      return (_ref = Batman.DOM.readers).showif.apply(_ref, __slice.call(arguments).concat([true]));
+    hideif: function(definition) {
+      definition.invert = true;
+      return new Batman.DOM.ShowHideBinding(definition);
     },
-    insertif: function(node, key, context, parentRenderer, invert) {
-      new Batman.DOM.InsertionBinding(node, key, context, parentRenderer, false, invert);
-      return true;
+    insertif: function(definition) {
+      return new Batman.DOM.InsertionBinding(definition);
     },
-    removeif: function() {
-      var _ref;
-      return (_ref = Batman.DOM.readers).insertif.apply(_ref, __slice.call(arguments).concat([true]));
+    removeif: function(definition) {
+      definition.invert = true;
+      return new Batman.DOM.InsertionBinding(definition);
     },
-    route: function() {
-      (function(func, args, ctor) {
-        ctor.prototype = func.prototype;
-        var child = new ctor, result = func.apply(child, args), t = typeof result;
-        return t == "object" || t == "function" ? result || child : child;
-      })(Batman.DOM.RouteBinding, arguments, function(){});
-      return true;
+    route: function(definition) {
+      return new Batman.DOM.RouteBinding(definition);
     },
-    view: function() {
-      (function(func, args, ctor) {
-        ctor.prototype = func.prototype;
-        var child = new ctor, result = func.apply(child, args), t = typeof result;
-        return t == "object" || t == "function" ? result || child : child;
-      })(Batman.DOM.ViewBinding, arguments, function(){});
-      return false;
+    view: function(definition) {
+      return new Batman.DOM.ViewBinding(definition);
     },
-    partial: function(node, path, context, renderer) {
-      Batman.DOM.partial(node, path, context, renderer);
-      return true;
+    partial: function(definition) {
+      return Batman.DOM.partial(definition.node, definition.keyPath, definition.context, definition.renderer);
     },
-    defineview: function(node, name, context, renderer) {
+    defineview: function(definition) {
+      var node;
+      node = definition.node;
       Batman.DOM.onParseExit(node, function() {
         var _ref;
         return (_ref = node.parentNode) != null ? _ref.removeChild(node) : void 0;
       });
-      Batman.DOM.defineView(name, node);
-      return false;
+      Batman.DOM.defineView(definition.keyPath, node);
+      return {
+        skipChildren: true
+      };
     },
-    renderif: function(node, key, context, renderer) {
-      new Batman.DOM.DeferredRenderingBinding(node, key, context, renderer);
-      return false;
+    renderif: function(definition) {
+      return new Batman.DOM.DeferredRenderingBinding(definition);
     },
-    "yield": function(node, key) {
-      Batman.DOM.onParseExit(node, function() {
-        return Batman.DOM.Yield.withName(key).set('containerNode', node);
+    "yield": function(definition) {
+      var keyPath, node;
+      node = definition.node, keyPath = definition.keyPath;
+      return Batman.DOM.onParseExit(node, function() {
+        return Batman.DOM.Yield.withName(keyPath).set('containerNode', node);
       });
-      return true;
     },
-    contentfor: function(node, key, context, renderer, action) {
-      if (action == null) {
-        action = 'append';
-      }
-      Batman.DOM.onParseExit(node, function() {
+    contentfor: function(definition) {
+      var keyPath, node, renderer, swapMethod, value;
+      node = definition.node, value = definition.value, swapMethod = definition.swapMethod, renderer = definition.renderer, keyPath = definition.keyPath;
+      swapMethod || (swapMethod = 'append');
+      return Batman.DOM.onParseExit(node, function() {
         var _ref;
         if ((_ref = node.parentNode) != null) {
           _ref.removeChild(node);
         }
-        return renderer.view.pushYieldAction(key, action, node);
+        return renderer.view.pushYieldAction(keyPath, swapMethod, node);
       });
-      return true;
     },
-    replace: function(node, key, context, renderer) {
-      Batman.DOM.readers.contentfor(node, key, context, renderer, 'replace');
-      return true;
+    replace: function(definition) {
+      definition.swapMethod = 'replace';
+      return Batman.DOM.readers.contentfor(definition);
     }
   };
 
@@ -2708,11 +2839,14 @@
       Batman.DOM.addEventListener(node, eventName, function() {
         var args, event;
         event = arguments[0], args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-        if (event.metaKey || event.ctrlKey) {
+        if (event.metaKey || event.ctrlKey || event.button === 1) {
           return;
         }
-        callback.apply(null, [node, event].concat(__slice.call(args), [context]));
-        return Batman.DOM.preventDefault(event);
+        Batman.DOM.preventDefault(event);
+        if (!Batman.DOM.eventIsAllowed(eventName, event)) {
+          return;
+        }
+        return callback.apply(null, [node, event].concat(__slice.call(args), [context]));
       });
       if (node.nodeName.toUpperCase() === 'A' && !node.href) {
         node.href = '#';
@@ -2736,7 +2870,7 @@
                 if (event.type === 'keyup' && Batman.DOM.events.isEnter(event)) {
                   return;
                 }
-                return oldCallback.apply(null, arguments);
+                return oldCallback(node, event);
               };
               return ['input', 'keyup', 'change'];
             } else {
@@ -2801,9 +2935,33 @@
     }
   };
 
+  Batman.DOM.eventIsAllowed = function(eventName, event) {
+    var delegate, _ref, _ref1;
+    if (delegate = (_ref = Batman.currentApp) != null ? (_ref1 = _ref.shouldAllowEvent) != null ? _ref1[eventName] : void 0 : void 0) {
+      if (delegate(event) === false) {
+        return false;
+      }
+    }
+    return true;
+  };
+
 }).call(this);
 
 (function() {
+
+  Batman.DOM.AttrReaderBindingDefinition = (function() {
+
+    function AttrReaderBindingDefinition(node, attr, keyPath, context, renderer) {
+      this.node = node;
+      this.attr = attr;
+      this.keyPath = keyPath;
+      this.context = context;
+      this.renderer = renderer;
+    }
+
+    return AttrReaderBindingDefinition;
+
+  })();
 
   Batman.DOM.attrReaders = {
     _parseAttribute: function(value) {
@@ -2815,13 +2973,14 @@
       }
       return value;
     },
-    source: function(node, attr, key, context, renderer) {
-      return Batman.DOM.attrReaders.bind(node, attr, key, context, renderer, 'dataChange');
+    source: function(definition) {
+      definition.onlyObserve = Batman.BindingDefinitionOnlyObserve.Data;
+      return Batman.DOM.attrReaders.bind(definition);
     },
-    bind: function(node, attr, key, context, renderer, only) {
+    bind: function(definition) {
       var bindingClass;
       bindingClass = (function() {
-        switch (attr) {
+        switch (definition.attr) {
           case 'checked':
           case 'disabled':
           case 'selected':
@@ -2839,175 +2998,110 @@
             return Batman.DOM.AttributeBinding;
         }
       })();
-      (function(func, args, ctor) {
-        ctor.prototype = func.prototype;
-        var child = new ctor, result = func.apply(child, args), t = typeof result;
-        return t == "object" || t == "function" ? result || child : child;
-      })(bindingClass, arguments, function(){});
-      return true;
+      return new bindingClass(definition);
     },
-    context: function(node, contextName, key, context) {
-      return context.descendWithKey(key, contextName);
+    context: function(definition) {
+      return definition.context.descendWithDefinition(definition);
     },
-    event: function(node, eventName, key, context) {
-      (function(func, args, ctor) {
-        ctor.prototype = func.prototype;
-        var child = new ctor, result = func.apply(child, args), t = typeof result;
-        return t == "object" || t == "function" ? result || child : child;
-      })(Batman.DOM.EventBinding, arguments, function(){});
-      return true;
+    event: function(definition) {
+      return new Batman.DOM.EventBinding(definition);
     },
-    addclass: function(node, className, key, context, parentRenderer, invert) {
-      new Batman.DOM.AddClassBinding(node, className, key, context, parentRenderer, false, invert);
-      return true;
+    addclass: function(definition) {
+      return new Batman.DOM.AddClassBinding(definition);
     },
-    removeclass: function(node, className, key, context, parentRenderer) {
-      return Batman.DOM.attrReaders.addclass(node, className, key, context, parentRenderer, true);
+    removeclass: function(definition) {
+      definition.invert = true;
+      return new Batman.DOM.AddClassBinding(definition);
     },
-    foreach: function(node, iteratorName, key, context, parentRenderer) {
-      (function(func, args, ctor) {
-        ctor.prototype = func.prototype;
-        var child = new ctor, result = func.apply(child, args), t = typeof result;
-        return t == "object" || t == "function" ? result || child : child;
-      })(Batman.DOM.IteratorBinding, arguments, function(){});
-      return false;
+    foreach: function(definition) {
+      return new Batman.DOM.IteratorBinding(definition);
     },
-    formfor: function(node, localName, key, context) {
-      (function(func, args, ctor) {
-        ctor.prototype = func.prototype;
-        var child = new ctor, result = func.apply(child, args), t = typeof result;
-        return t == "object" || t == "function" ? result || child : child;
-      })(Batman.DOM.FormBinding, arguments, function(){});
-      return context.descendWithKey(key, localName);
+    formfor: function(definition) {
+      new Batman.DOM.FormBinding(definition);
+      return definition.context.descendWithDefinition(definition);
     }
   };
 
 }).call(this);
 
 (function() {
-  var BatmanObject,
+  var BatmanObject, ObjectFunctions, getAccessorObject, promiseWrapper, wrapSingleAccessor,
+    __slice = [].slice,
     __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-    __slice = [].slice;
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  BatmanObject = (function(_super) {
-    var counter, getAccessorObject, promiseWrapper, wrapSingleAccessor;
-
-    __extends(BatmanObject, _super);
-
-    Batman.initializeObject(BatmanObject);
-
-    Batman.initializeObject(BatmanObject.prototype);
-
-    BatmanObject.classMixin = function() {
-      return Batman.mixin.apply(Batman, [this].concat(__slice.call(arguments)));
-    };
-
-    BatmanObject.mixin = function() {
-      return this.classMixin.apply(this.prototype, arguments);
-    };
-
-    BatmanObject.prototype.mixin = BatmanObject.classMixin;
-
-    counter = 0;
-
-    BatmanObject.prototype._batmanID = function() {
-      var c;
-      this._batmanID = function() {
-        return c;
+  getAccessorObject = function(base, accessor) {
+    var deprecated, _i, _len, _ref;
+    if (typeof accessor === 'function') {
+      accessor = {
+        get: accessor
       };
-      return c = counter++;
-    };
-
-    BatmanObject.prototype.hashKey = function() {
-      var key;
-      if (typeof this.isEqual === 'function') {
-        return;
-      }
-      this.hashKey = function() {
-        return key;
-      };
-      return key = "<Batman.Object " + (this._batmanID()) + ">";
-    };
-
-    BatmanObject.prototype.toJSON = function() {
-      var key, obj, value;
-      obj = {};
-      for (key in this) {
-        if (!__hasProp.call(this, key)) continue;
-        value = this[key];
-        if (key !== "_batman" && key !== "hashKey" && key !== "_batmanID") {
-          obj[key] = (value != null ? value.toJSON : void 0) ? value.toJSON() : value;
+    }
+    _ref = ['cachable', 'cacheable'];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      deprecated = _ref[_i];
+      if (deprecated in accessor) {
+        Batman.developer.warn("Property accessor option \"" + deprecated + "\" is deprecated. Use \"cache\" instead.");
+        if (!('cache' in accessor)) {
+          accessor.cache = accessor[deprecated];
         }
       }
-      return obj;
-    };
+    }
+    return accessor;
+  };
 
-    getAccessorObject = function(base, accessor) {
-      var deprecated, _i, _len, _ref;
-      if (typeof accessor === 'function') {
-        accessor = {
-          get: accessor
-        };
-      }
-      _ref = ['cachable', 'cacheable'];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        deprecated = _ref[_i];
-        if (deprecated in accessor) {
-          Batman.developer.warn("Property accessor option \"" + deprecated + "\" is deprecated. Use \"cache\" instead.");
-          if (!('cache' in accessor)) {
-            accessor.cache = accessor[deprecated];
+  promiseWrapper = function(fetcher) {
+    return function(defaultAccessor) {
+      return {
+        get: function(key) {
+          var asyncDeliver, existingValue, newValue, _base, _base1, _ref, _ref1,
+            _this = this;
+          if ((existingValue = defaultAccessor.get.apply(this, arguments)) != null) {
+            return existingValue;
           }
-        }
-      }
-      return accessor;
-    };
-
-    promiseWrapper = function(fetcher) {
-      return function(defaultAccessor) {
-        return {
-          get: function(key) {
-            var asyncDeliver, existingValue, newValue, _base, _name, _ref,
-              _this = this;
-            if ((existingValue = defaultAccessor.get.apply(this, arguments)) != null) {
-              return existingValue;
-            }
-            asyncDeliver = false;
-            newValue = void 0;
-            if ((_ref = (_base = this._batman)[_name = "promise" + key + "Fetched"]) == null) {
-              _base[_name] = (function() {
-                var deliver;
-                deliver = function(err, result) {
-                  if (asyncDeliver) {
-                    _this.set(key, result);
-                  }
-                  return newValue = result;
-                };
-                fetcher.call(_this, deliver, key);
-                return true;
-              })();
-            }
-            asyncDeliver = true;
-            return newValue;
-          },
-          cache: true
-        };
+          asyncDeliver = false;
+          newValue = void 0;
+          if ((_ref = (_base = this._batman).promises) == null) {
+            _base.promises = {};
+          }
+          if ((_ref1 = (_base1 = this._batman.promises)[key]) == null) {
+            _base1[key] = (function() {
+              var deliver, returnValue;
+              deliver = function(err, result) {
+                if (asyncDeliver) {
+                  _this.set(key, result);
+                }
+                return newValue = result;
+              };
+              returnValue = fetcher.call(_this, deliver, key);
+              if (newValue == null) {
+                newValue = returnValue;
+              }
+              return true;
+            })();
+          }
+          asyncDeliver = true;
+          return newValue;
+        },
+        cache: true
       };
     };
+  };
 
-    wrapSingleAccessor = function(core, wrapper) {
-      var k, v;
-      wrapper = (typeof wrapper === "function" ? wrapper(core) : void 0) || wrapper;
-      for (k in core) {
-        v = core[k];
-        if (!(k in wrapper)) {
-          wrapper[k] = v;
-        }
+  wrapSingleAccessor = function(core, wrapper) {
+    var k, v;
+    wrapper = (typeof wrapper === "function" ? wrapper(core) : void 0) || wrapper;
+    for (k in core) {
+      v = core[k];
+      if (!(k in wrapper)) {
+        wrapper[k] = v;
       }
-      return wrapper;
-    };
+    }
+    return wrapper;
+  };
 
-    BatmanObject._defineAccessor = function() {
+  ObjectFunctions = {
+    _defineAccessor: function() {
       var accessor, key, keys, _base, _i, _j, _len, _ref, _results;
       keys = 2 <= arguments.length ? __slice.call(arguments, 0, _i = arguments.length - 1) : (_i = 0, []), accessor = arguments[_i++];
       if (!(accessor != null)) {
@@ -3029,11 +3123,8 @@
         }
         return _results;
       }
-    };
-
-    BatmanObject.prototype._defineAccessor = BatmanObject._defineAccessor;
-
-    BatmanObject._defineWrapAccessor = function() {
+    },
+    _defineWrapAccessor: function() {
       var key, keys, wrapper, _i, _j, _len, _results;
       keys = 2 <= arguments.length ? __slice.call(arguments, 0, _i = arguments.length - 1) : (_i = 0, []), wrapper = arguments[_i++];
       Batman.initializeObject(this);
@@ -3047,9 +3138,45 @@
         }
         return _results;
       }
+    },
+    _resetPromises: function() {
+      var key;
+      if (this._batman.promises == null) {
+        return;
+      }
+      for (key in this._batman.promises) {
+        this._resetPromise(key);
+      }
+    },
+    _resetPromise: function(key) {
+      this.unset(key);
+      this.property(key).cached = false;
+      delete this._batman.promises[key];
+    }
+  };
+
+  BatmanObject = (function(_super) {
+    var counter;
+
+    __extends(BatmanObject, _super);
+
+    Batman.initializeObject(BatmanObject);
+
+    Batman.initializeObject(BatmanObject.prototype);
+
+    Batman.mixin(BatmanObject.prototype, ObjectFunctions, Batman.EventEmitter, Batman.Observable);
+
+    Batman.mixin(BatmanObject, ObjectFunctions, Batman.EventEmitter, Batman.Observable);
+
+    BatmanObject.classMixin = function() {
+      return Batman.mixin.apply(Batman, [this].concat(__slice.call(arguments)));
     };
 
-    BatmanObject.prototype._defineWrapAccessor = BatmanObject._defineWrapAccessor;
+    BatmanObject.mixin = function() {
+      return this.classMixin.apply(this.prototype, arguments);
+    };
+
+    BatmanObject.prototype.mixin = BatmanObject.classMixin;
 
     BatmanObject.classAccessor = BatmanObject._defineAccessor;
 
@@ -3068,17 +3195,6 @@
     };
 
     BatmanObject.prototype.wrapAccessor = BatmanObject._defineWrapAccessor;
-
-    function BatmanObject() {
-      var mixins;
-      mixins = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-      this._batman = new Batman._Batman(this);
-      this.mixin.apply(this, mixins);
-    }
-
-    BatmanObject.classMixin(Batman.EventEmitter, Batman.Observable);
-
-    BatmanObject.mixin(Batman.EventEmitter, Batman.Observable);
 
     BatmanObject.observeAll = function() {
       return this.prototype.observe.apply(this.prototype, arguments);
@@ -3099,6 +3215,45 @@
     BatmanObject.accessor('_batmanID', function() {
       return this._batmanID();
     });
+
+    function BatmanObject() {
+      var mixins;
+      mixins = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      this._batman = new Batman._Batman(this);
+      this.mixin.apply(this, mixins);
+    }
+
+    counter = 0;
+
+    BatmanObject.prototype._batmanID = function() {
+      var _base, _ref;
+      this._batman.check(this);
+      if ((_ref = (_base = this._batman).id) == null) {
+        _base.id = counter++;
+      }
+      return this._batman.id;
+    };
+
+    BatmanObject.prototype.hashKey = function() {
+      var _base;
+      if (typeof this.isEqual === 'function') {
+        return;
+      }
+      return (_base = this._batman).hashKey || (_base.hashKey = "<Batman.Object " + (this._batmanID()) + ">");
+    };
+
+    BatmanObject.prototype.toJSON = function() {
+      var key, obj, value;
+      obj = {};
+      for (key in this) {
+        if (!__hasProp.call(this, key)) continue;
+        value = this[key];
+        if (key !== "_batman" && key !== "hashKey" && key !== "_batmanID") {
+          obj[key] = (value != null ? value.toJSON : void 0) ? value.toJSON() : value;
+        }
+      }
+      return obj;
+    };
 
     return BatmanObject;
 
@@ -3137,6 +3292,8 @@
 
     Renderer.prototype.start = function() {
       this.startTime = new Date;
+      this.prevent('parsed');
+      this.prevent('rendered');
       return this.parseNode(this.node);
     };
 
@@ -3148,8 +3305,8 @@
     Renderer.prototype.finish = function() {
       this.startTime = null;
       this.prevent('stopped');
-      this.fire('parsed');
-      return this.fire('rendered');
+      this.allowAndFire('parsed');
+      return this.allowAndFire('rendered');
     };
 
     Renderer.prototype.stop = function() {
@@ -3198,7 +3355,7 @@
     };
 
     Renderer.prototype.parseNode = function(node) {
-      var argument, attribute, bindings, keypath, names, nextNode, oldContext, result, skipChildren, _base, _base1, _k, _l, _len2, _len3, _ref1, _ref2, _ref3, _ref4,
+      var attr, attribute, binding, bindingDefinition, bindings, names, nextNode, oldContext, reader, skipChildren, value, _k, _l, _len2, _len3, _ref1, _ref2, _ref3, _ref4,
         _this = this;
       if (this.deferEvery && (new Date - this.startTime) > this.deferEvery) {
         this.resumeNode = node;
@@ -3218,17 +3375,17 @@
         }
         _ref3 = bindings.sort(this._sortBindings);
         for (_l = 0, _len3 = _ref3.length; _l < _len3; _l++) {
-          _ref4 = _ref3[_l], name = _ref4[0], argument = _ref4[1], keypath = _ref4[2];
-          result = argument ? typeof (_base = Batman.DOM.attrReaders)[name] === "function" ? _base[name](node, argument, keypath, this.context, this) : void 0 : typeof (_base1 = Batman.DOM.readers)[name] === "function" ? _base1[name](node, keypath, this.context, this) : void 0;
-          if (result === false) {
-            skipChildren = true;
-            break;
-          } else if (result instanceof Batman.RenderContext) {
+          _ref4 = _ref3[_l], name = _ref4[0], attr = _ref4[1], value = _ref4[2];
+          binding = attr ? (reader = Batman.DOM.attrReaders[name]) ? (bindingDefinition = new Batman.DOM.AttrReaderBindingDefinition(node, attr, value, this.context, this), reader(bindingDefinition)) : void 0 : (reader = Batman.DOM.readers[name]) ? (bindingDefinition = new Batman.DOM.ReaderBindingDefinition(node, value, this.context, this), reader(bindingDefinition)) : void 0;
+          if (binding instanceof Batman.RenderContext) {
             oldContext = this.context;
-            this.context = result;
+            this.context = binding;
             Batman.DOM.onParseExit(node, function() {
               return _this.context = oldContext;
             });
+          } else if (binding != null ? binding.skipChildren : void 0) {
+            skipChildren = true;
+            break;
           }
         }
       }
@@ -3290,11 +3447,11 @@
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   Batman.DOM.AbstractBinding = (function(_super) {
-    var get_dot_rx, get_rx, keypath_rx;
+    var get_dot_rx, get_rx, keypath_rx, onlyAll, onlyData, onlyNode;
 
     __extends(AbstractBinding, _super);
 
-    keypath_rx = /(^|,)\s*(?:(true|false)|("[^"]*")|(\{[^\}]*\})|([a-zA-Z][\w\-\.]*[\?\!]?))\s*(?=$|,)/g;
+    keypath_rx = /(^|,)\s*(?:(true|false)|("[^"]*")|(\{[^\}]*\})|(([0-9]+[a-zA-Z\_]|[a-zA-Z])[\w\-\.]*[\?\!]?))\s*(?=$|,)/g;
 
     get_dot_rx = /(?:\]\.)(.+?)(?=[\[\.]|\s*\||$)/;
 
@@ -3362,6 +3519,12 @@
       return this.renderContext.contextForKey(this.key);
     });
 
+    onlyAll = Batman.BindingDefinitionOnlyObserve.All;
+
+    onlyData = Batman.BindingDefinitionOnlyObserve.Data;
+
+    onlyNode = Batman.BindingDefinitionOnlyObserve.Node;
+
     AbstractBinding.prototype.bindImmediately = true;
 
     AbstractBinding.prototype.shouldSet = true;
@@ -3370,17 +3533,22 @@
 
     AbstractBinding.prototype.escapeValue = true;
 
-    function AbstractBinding(node, keyPath, renderContext, renderer, only) {
-      this.node = node;
-      this.keyPath = keyPath;
-      this.renderContext = renderContext;
-      this.renderer = renderer;
-      this.only = only != null ? only : false;
+    AbstractBinding.prototype.onlyObserve = onlyAll;
+
+    AbstractBinding.prototype.skipParseFilter = false;
+
+    function AbstractBinding(definition) {
       this._fireDataChange = __bind(this._fireDataChange, this);
-
-      this._fireNodeChange = __bind(this._fireNodeChange, this);
-
-      this.parseFilter();
+      this.node = definition.node, this.keyPath = definition.keyPath, this.renderContext = definition.context, this.renderer = definition.renderer;
+      if (definition.onlyObserve) {
+        this.onlyObserve = definition.onlyObserve;
+      }
+      if (definition.skipParseFilter != null) {
+        this.skipParseFilter = definition.skipParseFilter;
+      }
+      if (!this.skipParseFilter) {
+        this.parseFilter();
+      }
       if (this.bindImmediately) {
         this.bind();
       }
@@ -3392,16 +3560,16 @@
 
     AbstractBinding.prototype.bind = function() {
       var _ref, _ref1;
-      if ((this.node != null) && ((_ref = this.only) === false || _ref === 'nodeChange') && Batman.DOM.nodeIsEditable(this.node)) {
-        Batman.DOM.events.change(this.node, this._fireNodeChange);
-        if (this.only === 'nodeChange') {
+      if (this.node && ((_ref = this.onlyObserve) === onlyAll || _ref === onlyNode) && Batman.DOM.nodeIsEditable(this.node)) {
+        Batman.DOM.events.change(this.node, this._fireNodeChange.bind(this));
+        if (this.onlyObserve === onlyNode) {
           this._fireNodeChange();
         }
       }
-      if ((_ref1 = this.only) === false || _ref1 === 'dataChange') {
+      if ((_ref1 = this.onlyObserve) === onlyAll || _ref1 === onlyData) {
         this.observeAndFire('filteredValue', this._fireDataChange);
       }
-      if (this.node != null) {
+      if (this.node) {
         return Batman.DOM.trackBinding(this, this.node);
       }
     };
@@ -3435,6 +3603,10 @@
         });
       }
       this.fire('die');
+      this.node = null;
+      this.keyPath = null;
+      this.renderContext = null;
+      this.renderer = null;
       this.dead = true;
       return true;
     };
@@ -3507,6 +3679,10 @@
 
     __extends(ViewBinding, _super);
 
+    ViewBinding.prototype.skipChildren = true;
+
+    ViewBinding.prototype.onlyObserve = Batman.BindingDefinitionOnlyObserve.Data;
+
     function ViewBinding() {
       ViewBinding.__super__.constructor.apply(this, arguments);
       this.renderer.prevent('rendered');
@@ -3514,7 +3690,8 @@
     }
 
     ViewBinding.prototype.dataChange = function(viewClassOrInstance) {
-      var _this = this;
+      var _ref,
+        _this = this;
       if (viewClassOrInstance == null) {
         return;
       }
@@ -3532,7 +3709,15 @@
       this.view.on('ready', function() {
         return _this.renderer.allowAndFire('rendered');
       });
-      return this.die();
+      this.forget();
+      return (_ref = this._batman.properties) != null ? _ref.forEach(function(key, property) {
+        return property.die();
+      }) : void 0;
+    };
+
+    ViewBinding.prototype.die = function() {
+      this.view = null;
+      return ViewBinding.__super__.die.apply(this, arguments);
     };
 
     return ViewBinding;
@@ -3553,7 +3738,39 @@
       return ViewArgumentBinding.__super__.constructor.apply(this, arguments);
     }
 
+    ViewArgumentBinding.prototype.onlyObserve = Batman.BindingDefinitionOnlyObserve.None;
+
     return ViewArgumentBinding;
+
+  })(Batman.DOM.AbstractBinding);
+
+}).call(this);
+
+(function() {
+  var __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+  Batman.DOM.ValueBinding = (function(_super) {
+
+    __extends(ValueBinding, _super);
+
+    function ValueBinding(definition) {
+      var _ref;
+      this.isInputBinding = (_ref = definition.node.nodeName.toLowerCase()) === 'input' || _ref === 'textarea';
+      ValueBinding.__super__.constructor.apply(this, arguments);
+    }
+
+    ValueBinding.prototype.nodeChange = function(node, context) {
+      if (this.isTwoWay()) {
+        return this.set('filteredValue', this.node.value);
+      }
+    };
+
+    ValueBinding.prototype.dataChange = function(value, node) {
+      return Batman.DOM.valueForNode(this.node, value, this.escapeValue);
+    };
+
+    return ValueBinding;
 
   })(Batman.DOM.AbstractBinding);
 
@@ -3567,14 +3784,16 @@
 
     __extends(ShowHideBinding, _super);
 
-    function ShowHideBinding(node, className, key, context, parentRenderer, invert) {
+    ShowHideBinding.prototype.onlyObserve = Batman.BindingDefinitionOnlyObserve.Data;
+
+    function ShowHideBinding(definition) {
       var display;
-      this.invert = invert != null ? invert : false;
-      display = node.style.display;
+      display = definition.node.style.display;
       if (!display || display === 'none') {
         display = '';
       }
       this.originalDisplay = display;
+      this.invert = definition.invert;
       ShowHideBinding.__super__.constructor.apply(this, arguments);
     }
 
@@ -3620,7 +3839,7 @@
 
     SelectBinding.prototype.isInputBinding = true;
 
-    SelectBinding.prototype.firstBind = true;
+    SelectBinding.prototype.canSetImplicitly = true;
 
     function SelectBinding() {
       this.updateOptionBindings = __bind(this.updateOptionBindings, this);
@@ -3661,9 +3880,16 @@
       return this._fireDataChange(this.get('filteredValue'));
     };
 
+    SelectBinding.prototype.lastKeyContext = null;
+
     SelectBinding.prototype.dataChange = function(newValue) {
       var child, matches, valueToChild, _i, _len, _name, _ref,
         _this = this;
+      this.lastKeyContext || (this.lastKeyContext = this.get('keyContext'));
+      if (this.lastKeyContext !== this.get('keyContext')) {
+        this.canSetImplicitly = true;
+        this.lastKeyContext = this.get('keyContext');
+      }
       if (newValue != null ? newValue.forEach : void 0) {
         valueToChild = {};
         _ref = this.node.children;
@@ -3685,12 +3911,15 @@
           }
         });
       } else {
-        if (typeof newValue === 'undefined' && this.firstBind) {
-          this.set('unfilteredValue', this.node.value);
+        if (!(newValue != null) && this.canSetImplicitly) {
+          if (this.node.value) {
+            this.canSetImplicitly = false;
+            this.set('unfilteredValue', this.node.value);
+          }
         } else {
+          this.canSetImplicitly = false;
           Batman.DOM.valueForNode(this.node, newValue, this.escapeValue);
         }
-        this.firstBind = false;
       }
       this.updateOptionBindings();
     };
@@ -3742,7 +3971,9 @@
       return RouteBinding.__super__.constructor.apply(this, arguments);
     }
 
-    RouteBinding.prototype.onATag = false;
+    RouteBinding.prototype.onAnchorTag = false;
+
+    RouteBinding.prototype.onlyObserve = Batman.BindingDefinitionOnlyObserve.Data;
 
     RouteBinding.accessor('dispatcher', function() {
       return this.renderContext.get('dispatcher') || Batman.App.get('current.dispatcher');
@@ -3751,7 +3982,7 @@
     RouteBinding.prototype.bind = function() {
       var _this = this;
       if (this.node.nodeName.toUpperCase() === 'A') {
-        this.onATag = true;
+        this.onAnchorTag = true;
       }
       RouteBinding.__super__.bind.apply(this, arguments);
       return Batman.DOM.events.click(this.node, function(node, event) {
@@ -3769,11 +4000,11 @@
 
     RouteBinding.prototype.dataChange = function(value) {
       var path;
-      if (value != null) {
+      if (value) {
         path = this.pathFromValue(value);
       }
-      if (this.onATag) {
-        if ((path != null) && (Batman.navigator != null)) {
+      if (this.onAnchorTag) {
+        if (path && Batman.navigator) {
           path = Batman.navigator.linkTo(path);
         } else {
           path = "#";
@@ -3784,7 +4015,7 @@
 
     RouteBinding.prototype.pathFromValue = function(value) {
       var _ref;
-      if (value != null) {
+      if (value) {
         if (value.isNamedRouteQuery) {
           return value.get('path');
         } else {
@@ -3854,6 +4085,8 @@
       return MixinBinding.__super__.constructor.apply(this, arguments);
     }
 
+    MixinBinding.prototype.onlyObserve = Batman.BindingDefinitionOnlyObserve.Data;
+
     MixinBinding.prototype.dataChange = function(value) {
       if (value != null) {
         return Batman.mixin(this.node, value);
@@ -3907,6 +4140,8 @@
 
     DeferredRenderingBinding.prototype.rendered = false;
 
+    DeferredRenderingBinding.prototype.skipChildren = true;
+
     function DeferredRenderingBinding() {
       DeferredRenderingBinding.__super__.constructor.apply(this, arguments);
       this.node.removeAttribute("data-renderif");
@@ -3935,46 +4170,13 @@
   var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  Batman.DOM.Binding = (function(_super) {
-
-    __extends(Binding, _super);
-
-    function Binding(node) {
-      var _ref;
-      this.isInputBinding = (_ref = node.nodeName.toLowerCase()) === 'input' || _ref === 'textarea';
-      Binding.__super__.constructor.apply(this, arguments);
-    }
-
-    Binding.prototype.nodeChange = function(node, context) {
-      if (this.isTwoWay()) {
-        return this.set('filteredValue', this.node.value);
-      }
-    };
-
-    Binding.prototype.dataChange = function(value, node) {
-      return Batman.DOM.valueForNode(this.node, value, this.escapeValue);
-    };
-
-    return Binding;
-
-  })(Batman.DOM.AbstractBinding);
-
-}).call(this);
-
-(function() {
-  var __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-    __slice = [].slice;
-
   Batman.DOM.AbstractAttributeBinding = (function(_super) {
 
     __extends(AbstractAttributeBinding, _super);
 
-    function AbstractAttributeBinding() {
-      var args, attributeName, node;
-      node = arguments[0], attributeName = arguments[1], args = 3 <= arguments.length ? __slice.call(arguments, 2) : [];
-      this.attributeName = attributeName;
-      AbstractAttributeBinding.__super__.constructor.apply(this, [node].concat(__slice.call(args)));
+    function AbstractAttributeBinding(definition) {
+      this.attributeName = definition.attr;
+      AbstractAttributeBinding.__super__.constructor.apply(this, arguments);
     }
 
     return AbstractAttributeBinding;
@@ -3998,14 +4200,16 @@
 
     FormBinding.prototype.defaultErrorsListSelector = 'div.errors';
 
+    FormBinding.prototype.onlyObserve = Batman.BindingDefinitionOnlyObserve.None;
+
     FormBinding.accessor('errorsListSelector', function() {
       return this.get('node').getAttribute('data-errors-list') || this.defaultErrorsListSelector;
     });
 
-    function FormBinding(node, contextName, keyPath, renderContext, renderer, only) {
+    function FormBinding() {
       this.childBindingAdded = __bind(this.childBindingAdded, this);
       FormBinding.__super__.constructor.apply(this, arguments);
-      this.contextName = contextName;
+      this.contextName = this.attributeName;
       delete this.attributeName;
       Batman.DOM.events.submit(this.get('node'), function(node, e) {
         return Batman.DOM.preventDefault(e);
@@ -4014,12 +4218,13 @@
     }
 
     FormBinding.prototype.childBindingAdded = function(binding) {
-      var field, index, node;
+      var definition, field, index, node;
       if (binding.isInputBinding && Batman.isChildOf(this.get('node'), binding.get('node'))) {
         if (~(index = binding.get('key').indexOf(this.contextName))) {
           node = binding.get('node');
           field = binding.get('key').slice(index + this.contextName.length + 1);
-          return new Batman.DOM.AddClassBinding(node, this.errorClass, this.get('keyPath') + (" | get 'errors." + field + ".length'"), this.renderContext, this.renderer);
+          definition = new Batman.DOM.AttrReaderBindingDefinition(node, this.errorClass, this.get('keyPath') + (" | get 'errors." + field + ".length'"), this.renderContext, this.renderer);
+          return new Batman.DOM.AddClassBinding(definition);
         }
       }
     };
@@ -4051,13 +4256,15 @@
 
     __extends(EventBinding, _super);
 
-    EventBinding.prototype.bindImmediately = false;
+    EventBinding.prototype.onlyObserve = Batman.BindingDefinitionOnlyObserve.None;
 
-    function EventBinding(node, eventName, key, context) {
+    function EventBinding() {
       var attacher, callback, confirmText,
         _this = this;
       EventBinding.__super__.constructor.apply(this, arguments);
-      confirmText = this.node.getAttribute('data-confirm');
+      if (confirmText = this.node.getAttribute('data-confirm')) {
+        Batman.developer.deprecated("data-confirm");
+      }
       callback = function() {
         var _ref;
         if (confirmText && !confirm(confirmText)) {
@@ -4066,11 +4273,10 @@
         return (_ref = _this.get('filteredValue')) != null ? _ref.apply(_this.get('callbackContext'), arguments) : void 0;
       };
       if (attacher = Batman.DOM.events[this.attributeName]) {
-        attacher(this.node, callback, context);
+        attacher(this.node, callback, this.renderContext);
       } else {
-        Batman.DOM.events.other(this.node, this.attributeName, callback, context);
+        Batman.DOM.events.other(this.node, this.attributeName, callback, this.renderContext);
       }
-      this.bind();
     }
 
     EventBinding.accessor('callbackContext', function() {
@@ -4177,6 +4383,8 @@
       return AttributeBinding.__super__.constructor.apply(this, arguments);
     }
 
+    AttributeBinding.prototype.onlyObserve = Batman.BindingDefinitionOnlyObserve.Data;
+
     AttributeBinding.prototype.dataChange = function(value) {
       return this.node.setAttribute(this.attributeName, value);
     };
@@ -4201,15 +4409,17 @@
 
     __extends(AddClassBinding, _super);
 
-    function AddClassBinding(node, className, keyPath, renderContext, renderer, only, invert) {
-      var name, names;
-      this.invert = invert != null ? invert : false;
-      names = className.split('|');
+    AddClassBinding.prototype.onlyObserve = Batman.BindingDefinitionOnlyObserve.Data;
+
+    function AddClassBinding(definition) {
+      var name;
+      this.invert = definition.invert;
       this.classes = (function() {
-        var _i, _len, _results;
+        var _i, _len, _ref, _results;
+        _ref = definition.attr.split('|');
         _results = [];
-        for (_i = 0, _len = names.length; _i < _len; _i++) {
-          name = names[_i];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          name = _ref[_i];
           _results.push({
             name: name,
             pattern: new RegExp("(?:^|\\s)" + name + "(?:$|\\s)", 'i')
@@ -4218,7 +4428,6 @@
         return _results;
       })();
       AddClassBinding.__super__.constructor.apply(this, arguments);
-      delete this.attributeName;
     }
 
     AddClassBinding.prototype.dataChange = function(value) {
@@ -4307,28 +4516,7 @@
 
     __extends(StyleBinding, _super);
 
-    StyleBinding.SingleStyleBinding = (function(_super1) {
-
-      __extends(SingleStyleBinding, _super1);
-
-      SingleStyleBinding.prototype.isTwoWay = function() {
-        return false;
-      };
-
-      function SingleStyleBinding() {
-        var args, parent, _i;
-        args = 2 <= arguments.length ? __slice.call(arguments, 0, _i = arguments.length - 1) : (_i = 0, []), parent = arguments[_i++];
-        this.parent = parent;
-        SingleStyleBinding.__super__.constructor.apply(this, args);
-      }
-
-      SingleStyleBinding.prototype.dataChange = function(value) {
-        return this.parent.setStyle(this.attributeName, value);
-      };
-
-      return SingleStyleBinding;
-
-    })(Batman.DOM.AbstractAttributeBinding);
+    StyleBinding.prototype.onlyObserve = Batman.BindingDefinitionOnlyObserve.Data;
 
     function StyleBinding() {
       this.setStyle = __bind(this.setStyle, this);
@@ -4380,7 +4568,9 @@
     };
 
     StyleBinding.prototype.bindSingleAttribute = function(attr, keyPath) {
-      return this.styleBindings[attr] = new this.constructor.SingleStyleBinding(this.node, attr, keyPath, this.renderContext, this.renderer, this.only, this);
+      var definition;
+      definition = new Batman.DOM.AttrReaderBindingDefinition(this.node, attr, keyPath, this.renderContext, this.renderer);
+      return this.styleBindings[attr] = new Batman.DOM.StyleBinding.SingleStyleBinding(definition, this);
     };
 
     StyleBinding.prototype.setStyle = function(key, value) {
@@ -4425,6 +4615,29 @@
       return StyleBinding.__super__.unbindCollection.apply(this, arguments);
     };
 
+    StyleBinding.SingleStyleBinding = (function(_super1) {
+
+      __extends(SingleStyleBinding, _super1);
+
+      SingleStyleBinding.prototype.onlyObserve = Batman.BindingDefinitionOnlyObserve.Data;
+
+      SingleStyleBinding.prototype.isTwoWay = function() {
+        return false;
+      };
+
+      function SingleStyleBinding(definition, parent) {
+        this.parent = parent;
+        SingleStyleBinding.__super__.constructor.call(this, definition);
+      }
+
+      SingleStyleBinding.prototype.dataChange = function(value) {
+        return this.parent.setStyle(this.attributeName, value);
+      };
+
+      return SingleStyleBinding;
+
+    })(Batman.DOM.AbstractAttributeBinding);
+
     return StyleBinding;
 
   })(Batman.DOM.AbstractCollectionBinding);
@@ -4446,18 +4659,18 @@
 
     IteratorBinding.prototype.bindImmediately = false;
 
-    function IteratorBinding(sourceNode, iteratorName, key, context, parentRenderer) {
-      var previousSiblingNode,
-        _this = this;
-      this.iteratorName = iteratorName;
-      this.key = key;
-      this.context = context;
-      this.parentRenderer = parentRenderer;
+    IteratorBinding.prototype.skipChildren = true;
+
+    IteratorBinding.prototype.onlyObserve = Batman.BindingDefinitionOnlyObserve.Data;
+
+    function IteratorBinding(definition) {
       this.handleArrayChanged = __bind(this.handleArrayChanged, this);
 
+      var previousSiblingNode, sourceNode,
+        _this = this;
+      sourceNode = definition.node, this.iteratorName = definition.attr, this.key = definition.keyPath, this.parentRenderer = definition.renderer;
       this.nodeMap = new Batman.SimpleHash;
       this.rendererMap = new Batman.SimpleHash;
-      this.fragment = document.createDocumentFragment();
       this.prototypeNode = sourceNode.cloneNode(true);
       this.prototypeNode.removeAttribute("data-foreach-" + this.iteratorName);
       previousSiblingNode = sourceNode.nextSibling;
@@ -4475,16 +4688,12 @@
         _this.bind();
         return _this.parentRenderer.allowAndFire('rendered');
       });
-      IteratorBinding.__super__.constructor.call(this, this.endNode, this.iteratorName, this.key, this.context, this.parentRenderer);
+      definition.node = this.endNode;
+      IteratorBinding.__super__.constructor.apply(this, arguments);
     }
 
     IteratorBinding.prototype.parentNode = function() {
       return this.endNode.parentNode;
-    };
-
-    IteratorBinding.prototype.die = function() {
-      this.dead = true;
-      return IteratorBinding.__super__.die.apply(this, arguments);
     };
 
     IteratorBinding.prototype.dataChange = function(collection) {
@@ -4507,7 +4716,7 @@
       parentNode = this.parentNode();
       startIndex = this._getStartNodeIndex() + 1;
       unseenNodeMap = this.nodeMap.merge();
-      if (newItems != null) {
+      if (newItems) {
         for (index = _i = 0, _len = newItems.length; _i < _len; index = ++_i) {
           newItem = newItems[index];
           nodeAtIndex = parentNode.childNodes[startIndex + index];
@@ -4521,7 +4730,12 @@
         }
       }
       unseenNodeMap.forEach(function(item, node) {
-        return _this._removeItem(item);
+        if (_this._nodesToBeRendered.has(node)) {
+          _this._nodesToBeRemoved || (_this._nodesToBeRemoved = new Batman.SimpleSet);
+          return _this._nodesToBeRemoved.add(node);
+        } else {
+          return _this._removeItem(item);
+        }
       });
     };
 
@@ -4533,13 +4747,22 @@
       var newNode, renderer,
         _this = this;
       newNode = this.prototypeNode.cloneNode(true);
+      this._nodesToBeRendered || (this._nodesToBeRendered = new Batman.SimpleSet);
+      this._nodesToBeRendered.add(newNode);
       Batman._data(newNode, "" + this.iteratorName + "Item", newItem);
       this.nodeMap.set(newItem, newNode);
       this.parentRenderer.prevent('rendered');
       renderer = new Batman.Renderer(newNode, this.renderContext.descend(newItem, this.iteratorName), this.parentRenderer.view);
-      renderer.on('rendered', function() {
-        Batman.DOM.propagateBindingEvents(newNode);
-        _this.fire('nodeAdded', newNode, newItem);
+      renderer.once('rendered', function() {
+        var _ref;
+        _this._nodesToBeRendered.remove(newNode);
+        if ((_ref = _this._nodesToBeRemoved) != null ? _ref.has(newNode) : void 0) {
+          _this._nodesToBeRemoved.remove(newNode);
+          _this._removeItem(newItem);
+        } else {
+          Batman.DOM.propagateBindingEvents(newNode);
+          _this.fire('nodeAdded', newNode, newItem);
+        }
         return _this.parentRenderer.allowAndFire('rendered');
       });
       return newNode;
@@ -4564,6 +4787,15 @@
       return this.fire('nodeRemoved', node, item);
     };
 
+    IteratorBinding.prototype.die = function() {
+      var _ref;
+      if (this._nodesToBeRendered && !this._nodesToBeRendered.isEmpty()) {
+        this._nodesToBeRemoved || (this._nodesToBeRemoved = new Batman.SimpleSet);
+        (_ref = this._nodesToBeRemoved).add.apply(_ref, this._nodesToBeRendered.toArray());
+      }
+      return IteratorBinding.__super__.die.apply(this, arguments);
+    };
+
     return IteratorBinding;
 
   })(Batman.DOM.AbstractCollectionBinding);
@@ -4583,6 +4815,8 @@
       this.handleArrayChanged = __bind(this.handleArrayChanged, this);
       return ClassBinding.__super__.constructor.apply(this, arguments);
     }
+
+    ClassBinding.prototype.onlyObserve = Batman.BindingDefinitionOnlyObserve.Data;
 
     ClassBinding.prototype.dataChange = function(value) {
       if (value != null) {
@@ -4924,9 +5158,10 @@
         }
         return _this.runAfterFilter(key, env, callback);
       };
-      return this.runBeforeFilter(key, env, function(env) {
+      this.runBeforeFilter(key, env, function(env) {
         return this[key](env, next);
       });
+      return void 0;
     };
 
     return StorageAdapter;
@@ -5045,9 +5280,12 @@
       return Batman.helpers.pluralize(this.storageKey(constructor.prototype));
     };
 
-    RestStorage.prototype._execWithOptions = function(object, key, options) {
+    RestStorage.prototype._execWithOptions = function(object, key, options, context) {
+      if (context == null) {
+        context = object;
+      }
       if (typeof object[key] === 'function') {
-        return object[key](options);
+        return object[key].call(context, options);
       } else {
         return object[key];
       }
@@ -5087,8 +5325,10 @@
     };
 
     RestStorage.prototype.urlForRecord = function(record, env) {
-      var id, url;
-      if (record.url) {
+      var id, url, _ref;
+      if ((_ref = env.options) != null ? _ref.recordUrl : void 0) {
+        url = this._execWithOptions(env.options, 'recordUrl', env.options, record);
+      } else if (record.url) {
         url = this._execWithOptions(record, 'url', env.options);
       } else {
         url = record.constructor.url ? this._execWithOptions(record.constructor, 'url', env.options) : this._defaultCollectionUrl(record.constructor);
@@ -5104,8 +5344,8 @@
     };
 
     RestStorage.prototype.urlForCollection = function(model, env) {
-      var url;
-      url = model.url ? this._execWithOptions(model, 'url', env.options) : this._defaultCollectionUrl(model, env.options);
+      var url, _ref;
+      url = ((_ref = env.options) != null ? _ref.collectionUrl : void 0) ? this._execWithOptions(env.options, 'collectionUrl', env.options, env.options.urlContext) : model.url ? this._execWithOptions(model, 'url', env.options) : this._defaultCollectionUrl(model, env.options);
       return this._addUrlAffixes(this._addParams(url, env.options), model, env);
     };
 
@@ -5282,6 +5522,7 @@
       '403': RestStorage.NotAllowedError,
       '404': RestStorage.NotFoundError,
       '406': RestStorage.NotAcceptableError,
+      '409': RestStorage.RecordExistsError,
       '422': RestStorage.UnprocessableRecordError,
       '500': RestStorage.InternalStorageError,
       '501': RestStorage.NotImplementedError
@@ -6644,7 +6885,7 @@
         if ((_ref1 = Batman.currentApp) != null) {
           _ref1.prevent('ready');
         }
-        view.on('ready', function() {
+        view.once('ready', function() {
           var _ref2;
           Batman.DOM.Yield.withName(options.into).replace(view.get('node'));
           if ((_ref2 = Batman.currentApp) != null) {
@@ -6860,14 +7101,12 @@
     Batman.extend(SetProxy.prototype, Batman.Enumerable);
 
     SetProxy.prototype.filter = function(f) {
-      var r;
-      r = new Batman.Set();
-      return this.reduce((function(r, e) {
-        if (f(e)) {
-          r.add(e);
+      return this.reduce(function(accumulator, element) {
+        if (f(element)) {
+          accumulator.add(element);
         }
-        return r;
-      }), r);
+        return accumulator;
+      }, new Batman.Set());
     };
 
     SetProxy.prototype.replace = function() {
@@ -6878,6 +7117,8 @@
       length.expose();
       return result;
     };
+
+    Batman.Set._applySetAccessors(SetProxy);
 
     _ref = ['add', 'remove', 'find', 'clear', 'has', 'merge', 'toArray', 'isEmpty', 'indexedBy', 'indexedByUnique', 'sortedBy'];
     _fn = function(k) {
@@ -6890,8 +7131,6 @@
       k = _ref[_i];
       _fn(k);
     }
-
-    Batman.Set._applySetAccessors(SetProxy);
 
     SetProxy.accessor('length', {
       get: function() {
@@ -7035,7 +7274,9 @@
         }
         return _results;
       })();
-      return this.add.apply(this, itemsToAdd);
+      if (itemsToAdd.length > 0) {
+        return this.add.apply(this, itemsToAdd);
+      }
     };
 
     SetIntersection.prototype._itemsWereRemovedFromSource = function() {
@@ -7078,7 +7319,9 @@
           }
           return _results;
         })();
-        return this.add.apply(this, itemsToAdd);
+        if (itemsToAdd.length > 0) {
+          return this.add.apply(this, itemsToAdd);
+        }
       } else {
         itemsToRemove = (function() {
           var _i, _len, _results;
@@ -7091,7 +7334,9 @@
           }
           return _results;
         })();
-        return this.remove.apply(this, itemsToRemove);
+        if (itemsToRemove.length > 0) {
+          return this.remove.apply(this, itemsToRemove);
+        }
       }
     };
 
@@ -7112,13 +7357,15 @@
           }
           return _results;
         })();
-        return this.add.apply(this, itemsToAdd);
+        if (itemsToAdd.length > 0) {
+          return this.add.apply(this, itemsToAdd);
+        }
       }
     };
 
     SetComplement.prototype._addComplement = function(items, opposite) {
-      var item;
-      return this.add.apply(this, (function() {
+      var item, itemsToAdd;
+      itemsToAdd = (function() {
         var _i, _len, _results;
         _results = [];
         for (_i = 0, _len = items.length; _i < _len; _i++) {
@@ -7128,7 +7375,10 @@
           }
         }
         return _results;
-      })());
+      })();
+      if (itemsToAdd.length > 0) {
+        return this.add.apply(this, itemsToAdd);
+      }
     };
 
     return SetComplement;
@@ -7300,8 +7550,7 @@
 }).call(this);
 
 (function() {
-  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
-    __hasProp = {}.hasOwnProperty,
+  var __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __slice = [].slice;
 
@@ -7457,45 +7706,51 @@
       if ((_ref = this._batman.get('associations')) != null) {
         _ref.reset();
       }
+      this._resetPromises();
       return result;
     };
 
     Model.find = function(id, callback) {
+      return this.findWithOptions(id, void 0, callback);
+    };
+
+    Model.findWithOptions = function(id, options, callback) {
       var record;
+      if (options == null) {
+        options = {};
+      }
       Batman.developer.assert(callback, "Must call find with a callback!");
       record = new this();
       record._withoutDirtyTracking(function() {
         return this.set('id', id);
       });
-      record.load(callback);
+      record.loadWithOptions(options, callback);
       return record;
     };
 
     Model.load = function(options, callback) {
-      var _ref,
-        _this = this;
+      var _ref;
       if ((_ref = typeof options) === 'function' || _ref === 'undefined') {
         callback = options;
         options = {};
+      } else {
+        options = {
+          data: options
+        };
       }
+      return this.loadWithOptions(options, callback);
+    };
+
+    Model.loadWithOptions = function(options, callback) {
+      var _this = this;
       this.fire('loading', options);
-      return this._doStorageOperation('readAll', {
-        data: options
-      }, function(err, records, env) {
-        var mappedRecords, record;
+      return this._doStorageOperation('readAll', options, function(err, records, env) {
+        var mappedRecords;
         if (err != null) {
           _this.fire('error', err);
           return typeof callback === "function" ? callback(err, []) : void 0;
         } else {
-          mappedRecords = (function() {
-            var _i, _len, _results;
-            _results = [];
-            for (_i = 0, _len = records.length; _i < _len; _i++) {
-              record = records[_i];
-              _results.push(this._mapIdentity(record));
-            }
-            return _results;
-          }).call(_this);
+          mappedRecords = _this._mapIdentities(records);
           _this.fire('loaded', mappedRecords, env);
           return typeof callback === "function" ? callback(err, mappedRecords, env) : void 0;
         }
@@ -7534,22 +7789,30 @@
     };
 
     Model._mapIdentity = function(record) {
-      var existing, id, _ref;
-      if (typeof (id = record.get('id')) === 'undefined' || id === '') {
-        return record;
-      } else {
-        existing = (_ref = this.get("loaded.indexedBy.id").get(id)) != null ? _ref.toArray()[0] : void 0;
-        if (existing) {
+      return this._mapIdentities([record])[0];
+    };
+
+    Model._mapIdentities = function(records) {
+      var existing, id, index, newRecords, record, _i, _len, _ref, _ref1;
+      newRecords = [];
+      for (index = _i = 0, _len = records.length; _i < _len; index = ++_i) {
+        record = records[index];
+        if (!((id = record.get('id')) != null)) {
+          continue;
+        } else if (existing = (_ref = this.get('loaded.indexedBy.id').get(id)) != null ? _ref.toArray()[0] : void 0) {
           existing._withoutDirtyTracking(function() {
             var _ref1;
             return this.updateAttributes(((_ref1 = record.get('attributes')) != null ? _ref1.toObject() : void 0) || {});
           });
-          return existing;
+          records[index] = existing;
         } else {
-          this.get('loaded').add(record);
-          return record;
+          newRecords.push(record);
         }
       }
+      if (newRecords.length) {
+        (_ref1 = this.get('loaded')).add.apply(_ref1, newRecords);
+      }
+      return records;
     };
 
     Model._doStorageOperation = function(operation, options, callback) {
@@ -7624,12 +7887,6 @@
       if (idOrAttributes == null) {
         idOrAttributes = {};
       }
-      this.destroy = __bind(this.destroy, this);
-
-      this.save = __bind(this.save, this);
-
-      this.load = __bind(this.load, this);
-
       Batman.developer.assert(this instanceof Batman.Object, "constructors must be called with new");
       if (Batman.typeOf(idOrAttributes) === 'Object') {
         Model.__super__.constructor.call(this, idOrAttributes);
@@ -7788,13 +8045,22 @@
     };
 
     Model.prototype.load = function(options, callback) {
-      var callbackQueue, hasOptions, _ref1, _ref2,
-        _this = this;
+      var _ref1;
       if (!callback) {
         _ref1 = [{}, options], options = _ref1[0], callback = _ref1[1];
+      } else {
+        options = {
+          data: options
+        };
       }
+      return this.loadWithOptions(options, callback);
+    };
+
+    Model.prototype.loadWithOptions = function(options, callback) {
+      var callbackQueue, hasOptions, _ref1,
+        _this = this;
       hasOptions = Object.keys(options).length !== 0;
-      if ((_ref2 = this.get('lifecycle.state')) === 'destroying' || _ref2 === 'destroyed') {
+      if ((_ref1 = this.get('lifecycle.state')) === 'destroying' || _ref1 === 'destroyed') {
         if (typeof callback === "function") {
           callback(new Error("Can't load a destroyed record!"));
         }
@@ -7808,9 +8074,7 @@
         if (!hasOptions) {
           this._currentLoad = callbackQueue;
         }
-        return this._doStorageOperation('read', {
-          data: options
-        }, function(err, record, env) {
+        return this._doStorageOperation('read', options, function(err, record, env) {
           var _j, _len1;
           if (!err) {
             _this.get('lifecycle').loaded();
@@ -8181,9 +8445,15 @@
     HasOneProxy.prototype.fetchFromRemote = function(callback) {
       var loadOptions,
         _this = this;
-      loadOptions = {};
-      loadOptions[this.association.foreignKey] = this.get('primaryValue');
-      return this.association.getRelatedModel().load(loadOptions, function(error, loadedRecords) {
+      loadOptions = {
+        data: {}
+      };
+      loadOptions.data[this.association.foreignKey] = this.get('primaryValue');
+      if (this.association.options.url) {
+        loadOptions.collectionUrl = this.association.options.url;
+        loadOptions.urlContext = this.model;
+      }
+      return this.association.getRelatedModel().loadWithOptions(loadOptions, function(error, loadedRecords) {
         if (error) {
           throw error;
         }
@@ -8222,8 +8492,13 @@
     };
 
     BelongsToProxy.prototype.fetchFromRemote = function(callback) {
-      var _this = this;
-      return this.association.getRelatedModel().find(this.get('foreignValue'), function(error, loadedRecord) {
+      var loadOptions,
+        _this = this;
+      loadOptions = {};
+      if (this.association.options.url) {
+        loadOptions.recordUrl = this.association.options.url;
+      }
+      return this.association.getRelatedModel().findWithOptions(this.get('foreignValue'), loadOptions, function(error, loadedRecord) {
         if (error) {
           throw error;
         }
@@ -8258,8 +8533,13 @@
     };
 
     PolymorphicBelongsToProxy.prototype.fetchFromRemote = function(callback) {
-      var _this = this;
-      return this.association.getRelatedModelForType(this.get('foreignTypeValue')).find(this.get('foreignValue'), function(error, loadedRecord) {
+      var loadOptions,
+        _this = this;
+      loadOptions = {};
+      if (this.association.options.url) {
+        loadOptions.recordUrl = this.association.options.url;
+      }
+      return this.association.getRelatedModelForType(this.get('foreignTypeValue')).findWithOptions(this.get('foreignValue'), loadOptions, function(error, loadedRecord) {
         if (error) {
           throw error;
         }
@@ -8775,7 +9055,8 @@
     __extends(SetSort, _super);
 
     function SetSort(base, key, order) {
-      var boundReIndex;
+      var boundReIndex,
+        _this = this;
       this.key = key;
       if (order == null) {
         order = "asc";
@@ -8785,7 +9066,9 @@
       if (this.base.isObservable) {
         this._setObserver = new Batman.SetObserver(this.base);
         this._setObserver.observedItemKeys = [this.key];
-        boundReIndex = this._reIndex.bind(this);
+        boundReIndex = function() {
+          return _this._reIndex();
+        };
         this._setObserver.observerForItemAndKey = function() {
           return boundReIndex;
         };
@@ -8819,6 +9102,27 @@
         _results.push(iterator.call(ctx, e, i, this));
       }
       return _results;
+    };
+
+    SetSort.prototype.find = function(block) {
+      var item, _i, _len, _ref;
+      this.base.registerAsMutableSource();
+      _ref = this.get('_storage');
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        item = _ref[_i];
+        if (block(item)) {
+          return item;
+        }
+      }
+    };
+
+    SetSort.prototype.merge = function(other) {
+      this.base.registerAsMutableSource();
+      return (function(func, args, ctor) {
+        ctor.prototype = func.prototype;
+        var child = new ctor, result = func.apply(child, args), t = typeof result;
+        return t == "object" || t == "function" ? result || child : child;
+      })(Batman.Set, this._storage, function(){}).merge(other).sortedBy(this.key, this.order);
     };
 
     SetSort.prototype.compare = function(a, b) {
@@ -8925,7 +9229,7 @@
       if (this.foreignKeyValue == null) {
         return callback(void 0, this);
       }
-      return this.association.getRelatedModel().load(this._getLoadOptions(), function(err, records) {
+      return this.association.getRelatedModel().loadWithOptions(this._getLoadOptions(), function(err, records) {
         if (!err) {
           _this.markAsLoaded();
         }
@@ -8935,8 +9239,14 @@
 
     AssociationSet.prototype._getLoadOptions = function() {
       var loadOptions;
-      loadOptions = {};
-      loadOptions[this.association.foreignKey] = this.foreignKeyValue;
+      loadOptions = {
+        data: {}
+      };
+      loadOptions.data[this.association.foreignKey] = this.foreignKeyValue;
+      if (this.association.options.url) {
+        loadOptions.collectionUrl = this.association.options.url;
+        loadOptions.urlContext = this.association.parentSetIndex().get(this.foreignKeyValue);
+      }
       return loadOptions;
     };
 
@@ -8970,9 +9280,15 @@
 
     PolymorphicAssociationSet.prototype._getLoadOptions = function() {
       var loadOptions;
-      loadOptions = {};
-      loadOptions[this.association.foreignKey] = this.foreignKeyValue;
-      loadOptions[this.association.foreignTypeKey] = this.foreignTypeKeyValue;
+      loadOptions = {
+        data: {}
+      };
+      loadOptions.data[this.association.foreignKey] = this.foreignKeyValue;
+      loadOptions.data[this.association.foreignTypeKey] = this.foreignTypeKeyValue;
+      if (this.association.options.url) {
+        loadOptions.collectionUrl = this.association.options.url;
+        loadOptions.urlContext = this.association.parentSetIndex().get(this.foreignKeyValue);
+      }
       return loadOptions;
     };
 
@@ -9119,14 +9435,25 @@
     function PolymorphicAssociationSetIndex(association, type, key) {
       this.association = association;
       this.type = type;
-      PolymorphicAssociationSetIndex.__super__.constructor.call(this, this.association.getRelatedModelForType(type).get('loaded'), key);
+      PolymorphicAssociationSetIndex.__super__.constructor.call(this, this.association.getRelatedModel().get('loaded'), key);
     }
 
     PolymorphicAssociationSetIndex.prototype._resultSetForKey = function(key) {
-      var _this = this;
-      return this._storage.getOrSet(key, function() {
-        return new _this.association.proxyClass(key, _this.type, _this.association);
-      });
+      return this.association.setForKey(key);
+    };
+
+    PolymorphicAssociationSetIndex.prototype._addItem = function(item) {
+      if (this.association.modelType() !== item.get(this.association.foreignTypeKey)) {
+        return;
+      }
+      return PolymorphicAssociationSetIndex.__super__._addItem.apply(this, arguments);
+    };
+
+    PolymorphicAssociationSetIndex.prototype._removeItem = function(item) {
+      if (this.association.modelType() !== item.get(this.association.foreignTypeKey)) {
+        return;
+      }
+      return PolymorphicAssociationSetIndex.__super__._removeItem.apply(this, arguments);
     };
 
     return PolymorphicAssociationSetIndex;
@@ -9404,11 +9731,15 @@
     };
 
     PushStateNavigator.prototype.pushState = function(stateObject, title, path) {
-      return window.history.pushState(stateObject, title, this.linkTo(path));
+      if (path !== this.pathFromLocation(window.location)) {
+        return window.history.pushState(stateObject, title, this.linkTo(path));
+      }
     };
 
     PushStateNavigator.prototype.replaceState = function(stateObject, title, path) {
-      return window.history.replaceState(stateObject, title, this.linkTo(path));
+      if (path !== this.pathFromLocation(window.location)) {
+        return window.history.replaceState(stateObject, title, this.linkTo(path));
+      }
     };
 
     PushStateNavigator.prototype.linkTo = function(url) {
@@ -9825,7 +10156,7 @@
       } else {
         nestingParam = ":" + Batman.helpers.singularize(this.baseOptions.controller) + "Id";
         nestingSegment = Batman.helpers.underscore(this.baseOptions.controller);
-        return "" + (this.parent._nestingPath()) + "/" + nestingSegment + "/" + nestingParam + "/";
+        return "" + (this.parent._nestingPath()) + nestingSegment + "/" + nestingParam + "/";
       }
     };
 
@@ -9833,7 +10164,7 @@
       if (!this.parent) {
         return "";
       } else {
-        return this.baseOptions.controller + ".";
+        return this.parent._nestingName() + this.baseOptions.controller + ".";
       }
     };
 
@@ -9923,10 +10254,13 @@
     App.requirePath = '';
 
     Batman.developer["do"](function() {
+      var requireDeprecated;
+      requireDeprecated = "Please use whatever means you'd like to load your code before calling App.run.";
       App.require = function() {
         var base, name, names, path, _i, _len,
           _this = this;
         path = arguments[0], names = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
+        Batman.developer.deprecated("App.require", requireDeprecated);
         base = this.requirePath + path;
         for (_i = 0, _len = names.length; _i < _len; _i++) {
           name = names[_i];
@@ -9952,20 +10286,25 @@
       App.controller = function() {
         var names;
         names = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+        Batman.developer.deprecated("App.controller", requireDeprecated);
         names = names.map(function(n) {
           return n + '_controller';
         });
         return this.require.apply(this, ['controllers'].concat(__slice.call(names)));
       };
       App.model = function() {
+        Batman.developer.deprecated("App.model", requireDeprecated);
         return this.require.apply(this, ['models'].concat(__slice.call(arguments)));
       };
       return App.view = function() {
+        Batman.developer.deprecated("App.view", requireDeprecated);
         return this.require.apply(this, ['views'].concat(__slice.call(arguments)));
       };
     });
 
     App.layout = void 0;
+
+    App.shouldAllowEvent = {};
 
     _ref = Batman.RouteMapBuilder.BUILDER_FUNCTIONS;
     _fn = function(name) {
@@ -10091,7 +10430,7 @@
       this.options = Batman.extend(defaultOptions, this.defaultOptions, options);
       if (this.options.nestUrl) {
         if (!(this.model.urlNestsUnder != null)) {
-          developer.error("You must persist the the model " + this.model.constructor.name + " to use the url helpers on an association");
+          Batman.developer.error("You must persist the the model " + this.model.constructor.name + " to use the url helpers on an association");
         }
         this.model.urlNestsUnder(Batman.helpers.underscore(this.getRelatedModel().get('resourceName')));
       }
@@ -10194,7 +10533,7 @@
               return existingValueSet;
             }
           }
-          newSet = new _this.proxyClass(indexValue, _this);
+          newSet = _this.proxyClassInstanceForKey(indexValue);
           if (indexValue != null) {
             _this._setsByValue.set(indexValue, newSet);
           }
@@ -10225,9 +10564,13 @@
         return foundSet;
       }
       return this._setsByValue.getOrSet(indexValue, function() {
-        return new _this.proxyClass(indexValue, _this);
+        return _this.proxyClassInstanceForKey(indexValue);
       });
     });
+
+    PluralAssociation.prototype.proxyClassInstanceForKey = function(indexValue) {
+      return new this.proxyClass(indexValue, this);
+    };
 
     PluralAssociation.prototype.getAccessor = function(self, model, label) {
       var relatedRecords, setInAttributes,
@@ -10251,6 +10594,11 @@
         });
         return relatedRecords;
       }
+    };
+
+    PluralAssociation.prototype.parentSetIndex = function() {
+      this.parentIndex || (this.parentIndex = this.model.get('loaded').indexedByUnique(this.primaryKey));
+      return this.parentIndex;
     };
 
     PluralAssociation.prototype.setIndex = function() {
@@ -10425,8 +10773,25 @@
       return true;
     };
 
-    PolymorphicHasManyAssociation.prototype.getRelatedModelForType = function() {
-      return this.getRelatedModel();
+    PolymorphicHasManyAssociation.prototype.proxyClassInstanceForKey = function(indexValue) {
+      return new this.proxyClass(indexValue, this.modelType(), this);
+    };
+
+    PolymorphicHasManyAssociation.prototype.getRelatedModelForType = function(type) {
+      var relatedModel, scope;
+      scope = this.options.namespace || Batman.currentApp;
+      if (type) {
+        relatedModel = scope != null ? scope[type] : void 0;
+        relatedModel || (relatedModel = scope != null ? scope[Batman.helpers.camelize(type)] : void 0);
+      } else {
+        relatedModel = this.getRelatedModel();
+      }
+      Batman.developer["do"](function() {
+        if ((Batman.currentApp != null) && !relatedModel) {
+          return Batman.developer.warn("Related model " + type + " for polymorphic association not found.");
+        }
+      });
+      return relatedModel;
     };
 
     PolymorphicHasManyAssociation.prototype.modelType = function() {
@@ -10434,9 +10799,7 @@
     };
 
     PolymorphicHasManyAssociation.prototype.setIndex = function() {
-      if (!this.typeIndex) {
-        this.typeIndex = new Batman.PolymorphicAssociationSetIndex(this, this.modelType(), this[this.indexRelatedModelOn]);
-      }
+      this.typeIndex || (this.typeIndex = new Batman.PolymorphicAssociationSetIndex(this, this.modelType(), this[this.indexRelatedModelOn]));
       return this.typeIndex;
     };
 
@@ -10456,6 +10819,53 @@
           });
         }
         return jsonArray;
+      };
+    };
+
+    PolymorphicHasManyAssociation.prototype.decoder = function() {
+      var association;
+      association = this;
+      return function(data, key, _, __, parentRecord) {
+        var existingRecord, existingRelations, jsonObject, newRelations, record, relatedModel, savedRecord, subType, type, _i, _len;
+        if (relatedModel = association.getRelatedModel()) {
+          existingRelations = association.getFromAttributes(parentRecord) || association.setForRecord(parentRecord);
+          newRelations = existingRelations.filter(function(relation) {
+            return relation.isNew();
+          }).toArray();
+          for (_i = 0, _len = data.length; _i < _len; _i++) {
+            jsonObject = data[_i];
+            type = jsonObject[association.options.foreignTypeKey];
+            subType = association.getRelatedModelForType(type);
+            record = new subType();
+            record._withoutDirtyTracking(function() {
+              return this.fromJSON(jsonObject);
+            });
+            existingRecord = relatedModel.get('loaded').indexedByUnique('id').get(record.get('id'));
+            if (existingRecord != null) {
+              existingRecord._withoutDirtyTracking(function() {
+                return this.fromJSON(jsonObject);
+              });
+              record = existingRecord;
+            } else {
+              if (newRelations.length > 0) {
+                savedRecord = newRelations.shift();
+                savedRecord._withoutDirtyTracking(function() {
+                  return this.fromJSON(jsonObject);
+                });
+                record = savedRecord;
+              }
+            }
+            record = relatedModel._mapIdentity(record);
+            existingRelations.add(record);
+            if (association.options.inverseOf) {
+              record.set(association.options.inverseOf, parentRecord);
+            }
+          }
+          existingRelations.markAsLoaded();
+        } else {
+          Batman.developer.error("Can't decode model " + association.options.name + " because it hasn't been loaded yet!");
+        }
+        return existingRelations;
       };
     };
 
@@ -10698,15 +11108,10 @@
     PolymorphicBelongsToAssociation.prototype.inverse = false;
 
     PolymorphicBelongsToAssociation.prototype.apply = function(base) {
-      var foreignTypeValue, instanceOrProxy, model;
+      var foreignTypeValue, instanceOrProxy;
       PolymorphicBelongsToAssociation.__super__.apply.apply(this, arguments);
       if (instanceOrProxy = base.get(this.label)) {
-        if (instanceOrProxy instanceof Batman.AssociationProxy) {
-          model = instanceOrProxy.association.model;
-        } else {
-          model = instanceOrProxy.constructor;
-        }
-        foreignTypeValue = model.get('resourceName');
+        foreignTypeValue = instanceOrProxy instanceof Batman.PolymorphicBelongsToProxy ? instanceOrProxy.get('foreignTypeValue') : instanceOrProxy.constructor.get('resourceName');
         return base.set(this.foreignTypeKey, foreignTypeValue);
       }
     };
@@ -10894,6 +11299,11 @@
         wrong_length: "must be %{count} characters",
         blank: "can't be blank",
         not_numeric: "must be a number",
+        greater_than: "must be greater than %{count}",
+        greater_than_or_equal_to: "must be greater than or equal to %{count}",
+        equal_to: "must be equal to %{count}",
+        less_than: "must be less than %{count}",
+        less_than_or_equal_to: "must be less than or equal to %{count}",
         not_matching: "is not valid",
         invalid_association: "is not valid"
       }
@@ -10987,18 +11397,45 @@
       return NumericValidator.__super__.constructor.apply(this, arguments);
     }
 
-    NumericValidator.triggers('numeric');
+    NumericValidator.triggers('numeric', 'greaterThan', 'greaterThanOrEqualTo', 'equalTo', 'lessThan', 'lessThanOrEqualTo');
 
     NumericValidator.options('allowBlank');
 
     NumericValidator.prototype.validateEach = function(errors, record, key, callback) {
-      var value;
+      var options, value;
+      options = this.options;
       value = record.get(key);
       if (this.handleBlank(value)) {
         return callback();
       }
       if (!(value != null) || !(this.isNumeric(value) || this.canCoerceToNumeric(value))) {
         errors.add(key, this.format(key, 'not_numeric'));
+      } else {
+        if (options.greaterThan && value <= options.greaterThan) {
+          errors.add(key, this.format(key, 'greater_than', {
+            count: options.greaterThan
+          }));
+        }
+        if (options.greaterThanOrEqualTo && value < options.greaterThanOrEqualTo) {
+          errors.add(key, this.format(key, 'greater_than_or_equal_to', {
+            count: options.greaterThanOrEqualTo
+          }));
+        }
+        if (options.equalTo && value !== options.equalTo) {
+          errors.add(key, this.format(key, 'equal_to', {
+            count: options.equalTo
+          }));
+        }
+        if (options.lessThan && value >= options.lessThan) {
+          errors.add(key, this.format(key, 'less_than', {
+            count: options.lessThan
+          }));
+        }
+        if (options.lessThanOrEqualTo && value > options.lessThanOrEqualTo) {
+          errors.add(key, this.format(key, 'less_than_or_equal_to', {
+            count: options.lessThanOrEqualTo
+          }));
+        }
       }
       return callback();
     };
@@ -11148,7 +11585,7 @@
 
     function ControllerActionFrame(options, onComplete) {
       ControllerActionFrame.__super__.constructor.call(this, options);
-      this.on('complete', onComplete);
+      this.once('complete', onComplete);
     }
 
     ControllerActionFrame.prototype.startOperation = function(options) {
@@ -11202,20 +11639,19 @@
 
     InsertionBinding.prototype.bindImmediately = false;
 
-    function InsertionBinding(node, className, key, context, parentRenderer, invert) {
-      var result,
-        _this = this;
-      this.invert = invert != null ? invert : false;
+    InsertionBinding.prototype.onlyObserve = Batman.BindingDefinitionOnlyObserve.Data;
+
+    function InsertionBinding(definition) {
+      var _this = this;
+      this.invert = definition.invert;
       this.placeholderNode = document.createComment("detached node " + (this.get('_batmanID')));
-      result = InsertionBinding.__super__.constructor.apply(this, arguments);
+      InsertionBinding.__super__.constructor.apply(this, arguments);
       Batman.DOM.onParseExit(this.node, function() {
         _this.bind();
         if (_this.placeholderNode != null) {
           return Batman.DOM.trackBinding(_this, _this.placeholderNode);
         }
       });
-      result;
-
     }
 
     InsertionBinding.prototype.dataChange = function(value) {
@@ -11235,14 +11671,17 @@
     };
 
     InsertionBinding.prototype.die = function() {
+      var filteredValue, node, placeholderNode;
       if (this.dead) {
         return;
       }
+      node = this.node, placeholderNode = this.placeholderNode;
+      filteredValue = this.get('filteredValue');
       InsertionBinding.__super__.die.apply(this, arguments);
-      if (!!this.get('filteredValue') === !this.invert) {
-        return Batman.DOM.destroyNode(this.placeholderNode);
+      if (!!filteredValue === !this.invert) {
+        return Batman.DOM.destroyNode(placeholderNode);
       } else {
-        return Batman.DOM.destroyNode(this.node);
+        return Batman.DOM.destroyNode(node);
       }
     };
 
@@ -11461,10 +11900,10 @@
       }
     },
     prepend: function(value, string, binding) {
-      return string + (value != null ? value : '');
+      return (string != null ? string : '') + (value != null ? value : '');
     },
     append: function(value, string, binding) {
-      return (value != null ? value : '') + string;
+      return (value != null ? value : '') + (string != null ? string : '');
     },
     replace: buntUndefined(function(value, searchFor, replaceWith, flags, binding) {
       if (!binding) {
@@ -11653,10 +12092,10 @@
       return new this.constructor(object, this);
     };
 
-    RenderContext.prototype.descendWithKey = function(key, scopedKey) {
+    RenderContext.prototype.descendWithDefinition = function(definition) {
       var proxy;
-      proxy = new ContextProxy(this, key);
-      return this.descend(proxy, scopedKey);
+      proxy = new ContextProxy(definition);
+      return this.descend(proxy, definition.attr);
     };
 
     RenderContext.prototype.chain = function() {
@@ -11692,11 +12131,8 @@
         }
       });
 
-      function ContextProxy(renderContext, keyPath, localKey) {
-        this.renderContext = renderContext;
-        this.keyPath = keyPath;
-        this.localKey = localKey;
-        this.binding = new Batman.DOM.AbstractBinding(void 0, this.keyPath, this.renderContext);
+      function ContextProxy(definition) {
+        this.binding = new Batman.DOM.AbstractBinding(definition);
       }
 
       return ContextProxy;
@@ -11719,10 +12155,6 @@
 
     __extends(ViewStore, _super);
 
-    ViewStore.prefix = 'views';
-
-    ViewStore.fetchFromRemote = true;
-
     function ViewStore() {
       ViewStore.__super__.constructor.apply(this, arguments);
       this._viewContents = {};
@@ -11734,7 +12166,7 @@
     ViewStore.prototype.fetchView = function(path) {
       var _this = this;
       return new Batman.Request({
-        url: Batman.Navigator.normalizePath(this.constructor.prefix, "" + path + ".html"),
+        url: Batman.Navigator.normalizePath(Batman.config.viewPrefix, "" + path + ".html"),
         type: 'html',
         success: function(response) {
           return _this.set(path, response);
@@ -11749,7 +12181,7 @@
       'final': true,
       get: function(path) {
         var contents;
-        if (path[0] !== '/') {
+        if (path.charAt(0) !== '/') {
           return this.get("/" + path);
         }
         if (this._viewContents[path]) {
@@ -11761,14 +12193,14 @@
         if (contents = this._sourceFromDOM(path)) {
           return contents;
         }
-        if (this.constructor.fetchFromRemote) {
+        if (Batman.config.fetchRemoteViews) {
           this.fetchView(path);
         } else {
           throw new Error("Couldn't find view source for \'" + path + "\'!");
         }
       },
       set: function(path, content) {
-        if (path[0] !== '/') {
+        if (path.charAt(0) !== '/') {
           return this.set("/" + path, content);
         }
         this._requestedPaths.add(path);
@@ -11836,28 +12268,21 @@
     View.store = new Batman.ViewStore();
 
     View.option = function() {
-      var keys,
-        _this = this;
+      var keys;
       keys = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-      keys.forEach(function(key) {
-        return _this.accessor(_this.prototype._argumentBindingKey(key), function(bindingKey) {
-          var context, keyPath, node, _ref;
-          if (!((node = this.get('node')) && (context = this.get('context')))) {
-            return;
-          }
-          keyPath = node.getAttribute(("data-view-" + key).toLowerCase());
-          if (keyPath == null) {
-            return;
-          }
-          if ((_ref = this[bindingKey]) != null) {
-            _ref.die();
-          }
-          return this[bindingKey] = new Batman.DOM.ViewArgumentBinding(node, keyPath, context);
-        });
-      });
-      return this.accessor.apply(this, __slice.call(keys).concat([function(key) {
-        var _ref;
-        return (_ref = this.get(this._argumentBindingKey(key))) != null ? _ref.get('filteredValue') : void 0;
+      return this.accessor.apply(this, __slice.call(keys).concat([{
+        get: function(key) {
+          var _ref;
+          return (_ref = this.get("argumentBindings." + key)) != null ? _ref.get('filteredValue') : void 0;
+        },
+        set: function(key, value) {
+          var _ref;
+          return (_ref = this.get("argumentBindings." + key)) != null ? _ref.set('filteredValue', value) : void 0;
+        },
+        unset: function(key) {
+          var _ref;
+          return (_ref = this.get("argumentBindings." + key)) != null ? _ref.unset('filteredValue') : void 0;
+        }
       }]));
     };
 
@@ -11870,6 +12295,26 @@
     View.prototype.node = null;
 
     View.prototype.event('ready').oneShot = true;
+
+    View.accessor('argumentBindings', function() {
+      var _this = this;
+      return new Batman.TerminalAccessible(function(key) {
+        var bindingKey, context, definition, keyPath, node, _ref;
+        if (!((node = _this.get('node')) && (context = _this.get('context')))) {
+          return;
+        }
+        keyPath = node.getAttribute(("data-view-" + key).toLowerCase());
+        if (keyPath == null) {
+          return;
+        }
+        bindingKey = "_argumentBinding" + key;
+        if ((_ref = _this[bindingKey]) != null) {
+          _ref.die();
+        }
+        definition = new Batman.DOM.ReaderBindingDefinition(node, keyPath, context);
+        return _this[bindingKey] = new Batman.DOM.ViewArgumentBinding(definition);
+      });
+    });
 
     View.accessor('html', {
       get: function() {
@@ -11964,7 +12409,7 @@
       }
       this._rendered = true;
       this._renderer = new Batman.Renderer(node = this.get('node'), this.get('context'), this);
-      return this._renderer.on('rendered', function() {
+      return this._renderer.once('rendered', function() {
         return _this.fire('ready', node);
       });
     };
@@ -11985,6 +12430,26 @@
       } else {
         return false;
       }
+    };
+
+    View.prototype.die = function() {
+      var _ref;
+      this.fire('destroy', this.node);
+      this.forget();
+      if ((_ref = this._batman.properties) != null) {
+        _ref.forEach(function(key, property) {
+          return property.die();
+        });
+      }
+      return this.get('yields').forEach(function(name, actions) {
+        var node, _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = actions.length; _i < _len; _i++) {
+          node = actions[_i].node;
+          _results.push(Batman.DOM.didDestroyNode(node));
+        }
+        return _results;
+      });
     };
 
     View.prototype.applyYields = function() {
@@ -12018,10 +12483,6 @@
         node: node,
         action: action
       });
-    };
-
-    View.prototype._argumentBindingKey = function(key) {
-      return "_" + key + "ArgumentBinding";
     };
 
     View.prototype._setNodeOwner = function(node) {
