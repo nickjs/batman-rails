@@ -1,6 +1,6 @@
 module Batman
   module Rails
-    VERSION = "0.0.9"
-    BATMAN_VERSION = "0.13.1"
+    VERSION = "0.0.10"
+    BATMAN_VERSION = "0.14.1"
   end
 end
