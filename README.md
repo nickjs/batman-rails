@@ -48,7 +48,7 @@ This generator creates a batman controller for the given actions provided.
 
     rails g batman:scaffold
     
-This generator creates a controller, helper and mode to create a simple crud single page app
+This generator creates a controller, helper and model to create a simple crud single page app
 
 ## Example Usage
 
