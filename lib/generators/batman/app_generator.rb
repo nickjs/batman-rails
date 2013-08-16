@@ -67,7 +67,7 @@ module Batman
 
       def route_catchall
 <<-CODE
-\n  get "(*redirect_path)", to: "#{app_name}\#index", constraints: { format: /html/ }\n
+\n  get "(*redirect_path)", to: "#{app_name}\#index", constraints: lambda { |request| request.format == "text/html" }\n
 CODE
       end
 
