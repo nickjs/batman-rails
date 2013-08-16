@@ -6,10 +6,10 @@ require 'batman-rails/version'
 Gem::Specification.new do |gem|
   gem.name          = "batman-rails"
   gem.version       = Batman::Rails::VERSION
-  gem.authors       = ["Matt Helm", "John Duff"]
-  gem.email         = ["matt.helm@shopify.com"]
-  gem.description   = %q{Quickly get started with Batman.js in a Rails app. Provides generators to get started and bundles in the latest version of Batman.js.}
-  gem.summary       = %q{Use Batman.js with Rails}
+  gem.authors       = ["Nick Small", "Matt Helm", "John Duff"]
+  gem.email         = ["batmanjs@shopify.com"]
+  gem.description   = %q{Quickly get started with batman.js in a Rails app. Provides generators to get started and bundles in the latest version of batman.js.}
+  gem.summary       = %q{Use batman.js with Rails}
   gem.homepage      = "https://github.com/Shopify/batman-rails"
 
   gem.add_dependency "railties", [">= 3.2"]
