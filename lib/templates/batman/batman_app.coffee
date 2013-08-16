@@ -1,6 +1,4 @@
-Batman.extend Batman.config,
-  usePushState: true
-  viewPrefix: '/assets/html'
+Batman.config.pathToHTML = '/assets/html'
 
 class <%= js_application_name %> extends Batman.App
   # @resources 'products'
@@ -19,6 +17,4 @@ class <%= js_application_name %> extends Batman.App
 
   @root 'main#index'
 
-# Tell Batman to start the app
-window.<%= js_application_name %> = <%= js_application_name %>
-<%= js_application_name %>.run()
+(global ? window).<%= js_application_name %> = <%= js_application_name %>
