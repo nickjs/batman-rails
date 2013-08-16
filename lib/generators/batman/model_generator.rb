@@ -1,4 +1,4 @@
-require 'generators/batman/common'
+require 'generators/common'
 module Batman
   module Generators
     class ModelGenerator < ::Rails::Generators::NamedBase
@@ -10,7 +10,7 @@ module Batman
 
       def create_batman_model
         with_app_name do
-          template "model.coffee", "#{js_path}/models/#{file_name.downcase}.js.coffee"
+          template "batman/model.coffee", "#{app_path}/models/#{singular_table_name.downcase}.js.coffee"
         end
       end
 

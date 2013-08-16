@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= application_name.titleize %></title>
+  <%%= stylesheet_link_tag    "application", :media => "all" %>
+  <%%= javascript_include_tag "<%= application_name %>" %>
+  <%%= csrf_meta_tags %>
+</head>
+<body>
+
+<div data-yield="main"></div>
+
+<%= js_application_name %>.run()
+</body>
+</html>
