@@ -77,9 +77,6 @@ module AppGeneratorTests
       %W{models controllers views lib}.each do |require|
         assert_equal 1, app.scan(/require_tree \.\/#{require}/).length
       end
-
-      assert_equal 1, app.scan(/Dummy\.run\(\)/).length
-
     end
   end
 
