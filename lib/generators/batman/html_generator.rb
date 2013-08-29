@@ -16,7 +16,7 @@ module Batman
 
       def create_files
         with_app_name do
-          (options[:arguments] || %w(index show edit)).each do |file|
+          actions.each do |file|
             template "batman/html/#{file}.html", "#{app_path}/html/#{plural_name.downcase}/#{file}.html"
           end
         end

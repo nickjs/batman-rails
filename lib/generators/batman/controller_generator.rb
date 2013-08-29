@@ -12,7 +12,7 @@ module Batman
         with_app_name do
           template "batman/controller.coffee", "#{app_path}/controllers/#{file_name.downcase}_controller.js.coffee"
           generate "batman:html #{plural_name} #{action_names} #{app_name_flag}"
-          generate "batman:view  #{plural_name} #{app_name_flag}"
+          generate "batman:view  #{plural_name} #{action_names} #{app_name_flag}"
         end
       end
 

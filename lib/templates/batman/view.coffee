@@ -1,7 +1,7 @@
-class <%= js_application_name %>.<%= file_name.camelize %>View extends Batman.View
+class <%= js_application_name %>.<%= @file.camelize %> extends Batman.View
+  viewDidAppear: ->
+    # Your node is in the DOM and ready to accept instructions (aka jQuery)
 
-<% actions.each do |action| -%>
-class <%= js_application_name %>.<%= file_name.camelize %><%= action.camelize %>View extends <%= js_application_name %>.<%= file_name.camelize %>View
-
-<% end -%>
-
+  # buttonWasClicked: (node, event, view) ->
+    # You can put all of your event handlers in this view file. You can access
+    # data by using `view.lookupKeypath('someData')` or `@controller`.
