@@ -17,7 +17,9 @@ module Batman
       end
 
       def action_names
-        options[:actions].join(' ') if options[:actions]
+        return if actions.length == 0
+        view_action_names = actions - %w[create update destroy]
+        view_action_names.join(' ')
       end
     end
   end
