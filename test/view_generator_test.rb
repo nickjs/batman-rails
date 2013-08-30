@@ -5,15 +5,24 @@ class ViewGeneratorTest < Rails::Generators::TestCase
   tests Batman::Generators::ViewGenerator
 
   test "simple view" do
-    run_generator %w(Task index show)
+    run_generator %w(task)
 
     assert_file "#{javascripts_path}/batman/views/task_view.js.coffee" do |view|
-      view_class       = Regexp.escape("class Sample.TaskView extends Batman.View")
-      view_index_class = Regexp.escape("class Sample.TaskIndexView extends Sample.TaskView")
-      view_show_class  = Regexp.escape("class Sample.TaskShowView extends Sample.TaskView")
-
+      view_class = Regexp.escape("class Sample.TaskView extends Batman.View")
       assert_match /#{view_class}/, view
+    end
+  end
+
+  test "controller views" do
+    run_generator %w(tasks index show)
+
+    assert_file "#{javascripts_path}/batman/views/tasks/tasks_index_view.js.coffee" do |view|
+      view_index_class = Regexp.escape("class Sample.TasksIndexView extends Batman.View")
       assert_match /#{view_index_class}/, view
+    end
+
+    assert_file "#{javascripts_path}/batman/views/tasks/tasks_show_view.js.coffee" do |view|
+      view_show_class  = Regexp.escape("class Sample.TasksShowView extends Batman.View")
       assert_match /#{view_show_class}/, view
     end
   end
