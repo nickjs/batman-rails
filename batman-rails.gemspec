@@ -11,7 +11,7 @@ Gem::Specification.new do |gem|
   gem.description   = %q{Quickly get started with batman.js in a Rails app. Provides generators to get started and bundles in the latest version of batman.js.}
   gem.summary       = %q{Use batman.js with Rails}
   gem.homepage      = "https://github.com/Shopify/batman-rails"
-  gem.date          = "2013-08-30"
+  gem.date          = File.utime('VERSION')
 
   gem.add_dependency "railties", [">= 3.2"]
 
