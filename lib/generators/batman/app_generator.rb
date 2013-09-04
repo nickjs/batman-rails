@@ -51,6 +51,7 @@ module Batman
           template "batman/application_controller.coffee", "#{app_path}/controllers/application_controller.js.coffee"
           template "batman/main_controller.coffee", "#{app_path}/controllers/main_controller.js.coffee"
           template "batman/html/main_index.html", "#{app_path}/html/main/index.html"
+          template "batman/main_index_view.coffee", "#{app_path}/views/main/main_index_view.js.coffee"
         end
       end
 

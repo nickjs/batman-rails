@@ -13,37 +13,53 @@
         <!-- Begin left-sidebar -->
         <div id="left-sidebar">
            <ul class="subnav">
-              <li><a href="http://batmanjs.org/examples.html" target="_blank">Batman Examples</a></li>
-              <li><a href="http://batmanjs.org/docs/batman.html" target="_blank">Batman Documentation</a></li>
+              <li><a href="http://batmanjs.org/examples.html" target="_blank">batman.js Examples</a></li>
+              <li><a href="http://batmanjs.org/docs/index.html" target="_blank">batman.js Documentation</a></li>
               <li><a href="http://coffeescript.org/" target="_blank">CoffeeScript Documentation</a></li>
            </ul>
         </div>
         <!-- End left-sidebar -->
         <!-- Begin content-column-wrapper -->
         <div id="content-column-wrapper">
-          <h2>Batman.js</h2>
-          <h3>A client-side framework for Rails developers</h3>
-          <p>This page aims to be a collection of everything that batman.js is capable of. Over time it will grow to include more comprehensive examples, in addition to live applications using batman.js.</p>
+          <h2>batman.js</h2>
+          <h3>The best client-side framework for Rails developers</h3>
+          <p>This page aims to be a collection of everything that batman.js is capable of. Over time it will grow to include more comprehensive examples, in addition to live applications using batman.js. But for now, it's none of those things. Hooray!</p>
 
           <h4>Generate your resources</h4>
-          <p>Nullam id dolor id nibh ultricies vehicula ut id elit. Nullam quis risus eget urna mollis ornare vel eu leo. Donec ullamcorper nulla non metus auctor fringilla. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit.</p>
+          <p>Everything in batman.js has a proper place, driven by batman.js's conventions. By default with batman-rails, your app lives in app/assets/batman. A great way to get started is using the automatic generators to add some of your resources.</p>
 
           <div class="highlight">
-            rails generate batman:app<br />
-            rails generate batman:scaffold Post title:string content:string<br />
+            rails generate batman:scaffold Post<br />
+            rails generate batman:model Product<br />
+            rails generate batman:view player<br />
           </div>
 
-          <h4>Create your bindings</h4>
-          <p>Nullam id dolor id nibh ultricies vehicula ut id elit. Nullam quis risus eget urna mollis ornare vel eu leo. Donec ullamcorper nulla non metus auctor fringilla. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit.</p>
+          <p>More info on <a href="http://batmanjs.org/docs/structure.html">directory structure</a></p>
+
+          <h4>Add your bindings</h4>
+          <p>batman.js has a powerful system to automatically bind your HTML to data in your app and models. You can use data-* attributes to tell a node what type of stuff it cares about. Here's some simple examples.</p>
 
           <div style="padding: 10px">
             <span>First Name:</span><input type="text" data-bind="firstName"><br />
             <span>Last Name:</span><input type="text" data-bind="lastName"><br />
             <span>Hello, my name is <span data-bind="fullName"></span></span><br />
+            <a data-event-click="resetName">Reset name</a>
           </div>
 
+          <p>More info on <a href="http://batmanjs.org/docs/bindings.html">data bindings</a></p>
+
           <h4>Connect to Rails</h4>
-          <p>Nullam id dolor id nibh ultricies vehicula ut id elit. Nullam quis risus eget urna mollis ornare vel eu leo. Donec ullamcorper nulla non metus auctor fringilla. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit.</p>
+          <p>batman-rails includes a StorageAdapter class that makes communicating with your Rails API extremely easy. First set the storageKey to tell it which API endpoint to use, then specify that the model should persist with the RailsStorage storage adapter.</p>
+
+          <div class="highlight">
+            <pre>
+class MyApp.Product extends Batman.Model
+  @storageKey: 'products'
+  @persist Batman.RailsStorage
+            </pre>
+          </div>
+
+          <p>More info on <a href="http://batmanjs.org/docs/models.html">models</a></p>
         </div>
         <!-- End content-column-wrapper -->
      </div>
