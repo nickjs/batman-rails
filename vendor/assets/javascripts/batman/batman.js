@@ -11715,7 +11715,8 @@
     });
 
     RouteBinding.prototype.bind = function() {
-      if (this.node.nodeName.toUpperCase() === 'A') {
+      var _ref1;
+      if ((_ref1 = this.node.nodeName) === 'a' || _ref1 === 'A') {
         this.onAnchorTag = true;
       }
       RouteBinding.__super__.bind.apply(this, arguments);
@@ -12766,6 +12767,7 @@
           this.handleArrayChanged(items);
         }
       } else {
+        this.unbindCollection();
         this.collection = [];
         this.handleArrayChanged([]);
       }
