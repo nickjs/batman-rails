@@ -2,8 +2,8 @@ class <%= js_application_name %>.MainController extends <%= js_application_name 
   routingKey: 'main'
 
   index: (params) ->
-    @set 'firstName', 'James'
-    @set 'lastName', 'Bond'
+    @set 'firstName', 'Bruce'
+    @set 'lastName', 'Wayne'
 
   @accessor 'fullName', ->
     "#{@get('firstName')} #{@get('lastName')}"
