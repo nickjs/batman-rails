@@ -26,6 +26,10 @@ module Batman
             inject_into_file "config/routes.rb", :after => "#{js_application_name}::Application.routes.draw do\n"  do
               route_catchall
             end
+
+            inject_into_file "config/application.rb", :after => "class Application < Rails::Application\n" do
+              precompile_app
+            end
           end
 
         end
@@ -68,6 +72,12 @@ module Batman
       def route_catchall
 <<-CODE
 \n  get "(*redirect_path)", to: "#{app_name}\#index", constraints: lambda { |request| request.format == "text/html" }\n
+CODE
+      end
+
+      def precompile_app
+<<-CODE
+\n    config.assets.precompile += ['#{application_name}.js']\n
 CODE
       end
 
