@@ -51,7 +51,7 @@ module Batman
       module ClassMethods
         def requires_app_name
           class_option :app_name, :type => :string, :optional => true,
-                       :desc => "Name of the Batman app (defaults to the Rails app name"
+                       :desc => "Name of the Batman app (defaults to the Rails app name)"
         end
       end
     end
