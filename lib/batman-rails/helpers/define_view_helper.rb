@@ -1,26 +1,41 @@
 module Batman
   module DefineViewHelper
     def batman_define_views
-      batman_html_files.map do |pathname|
-        content_tag :div, data: { defineview: batman_pathname_to_defineview_name(pathname) } do
-          render file: pathname
+      content_tag :script do
+        raw %Q[(function(){#{BatmanView.all(self).map(&:inline_preload_javascript).join}})();]
+      end
+    end
+
+    class BatmanView
+      PATH_TO_HTML = "app/assets/batman/html/"
+
+      attr_accessor :pathname, :render_context
+
+      def self.all(render_context)
+        Dir.glob("#{PATH_TO_HTML}**/*").select do |pathname|
+          File.file?(pathname)
+        end.collect do |pathname|
+          new(pathname, render_context)
         end
-      end.reduce(:<<)
-    end
+      end
 
-    private
+      def initialize(pathname, render_context)
+        @pathname = pathname
+        @render_context = render_context
+      end
 
-    def batman_path_to_html
-      "app/assets/batman/html/"
-    end
+      def inline_preload_javascript
+        %Q{Batman.View.store.set(#{name.to_json}, #{content.to_json});}
+      end
 
-    def batman_pathname_to_defineview_name(pathname)
-      pathname.split(batman_path_to_html).last.gsub(/\.html\.[a-z]+$/, '')
-    end
+      private
 
-    def batman_html_files
-      Dir.glob("#{batman_path_to_html}**/*").select do |pathname|
-        File.file?(pathname)
+      def name
+        pathname.split(PATH_TO_HTML).last.gsub(/\.html\.[a-z]+$/, '').to_s
+      end
+
+      def content
+        render_context.render(file: pathname)
       end
     end
   end
