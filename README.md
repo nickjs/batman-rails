@@ -15,25 +15,32 @@ And then execute:
 
 ### Layout and namespacing
 
-Running `rails generate batman:app` will create the following directory structure under `app/assets/app_name/`:
+Running `rails generate batman:app` will:
 
-    models/
-    views/
-    controllers/
-    html/
-    lib/
+- create the following directory structure under `app/assets/batman/`:
+  
+  ``` 
+      - models/
+      - views/
+      - controllers/
+      - html/
+      - lib/
+      - app_name.coffee # initial setup & requires
+  ```
 
-It will also create a toplevel `app_name.coffee` file to setup namespacing and setup initial requires.
+- create a controller & route to server your batman.js app from `/` and serve HTML 
+- configure the asset pipeline to precompile `app_name.coffee`
 
 ## Generators
-Batman-Rails provides 3 simple generators to help get you started using Batman.js with Rails.
-The generators will only create client side code (CoffeeScript).
+
+Batman-Rails provides 3 simple generators to help get you started using batman.js with Rails.
+The generators will only create client-side code (CoffeeScript).
 
 ### Model Generator
 
     rails generate batman:model
 
-This generator creates a batman model inside `app/assets/app_name/models` to be used to talk to the Rails backend.
+This generator creates a batman model inside `app/assets/batman/models` to be used to talk to the Rails backend.
 
 ### Controllers
 
@@ -66,6 +73,22 @@ Install the gem and generate scaffolding.
     rails generate batman:scaffold Post title:string content:string
 
 You now have installed the `batman-rails` gem, setup a default directory structure for your frontend batman code. Then you generated the usual Rails server side scaffolding and finally generated Batman.js code to provide a simple single page app.
+
+## Precompiling Views
+
+In production, you may want to send all your HTML templates with the first request rather than sending them as-needed. `batman-rails` includes a view helper to do this. Add it to your application layout:
+
+```erb
+    <%= batman_define_views %>
+```
+
+It will gather HTML from `app/assets/batman/html` and interpolate them into JS code to preload `Batman.View.store`. If your HTML is in another directory, pass that directory as an option:
+
+```erb
+  <%= batman_define_views(path_to_html: "app/assets/templates/">
+```
+
+Now it will gather HTML from `app/assets/templates`!
 
 ## Contributing
 
