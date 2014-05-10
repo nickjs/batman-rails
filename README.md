@@ -1,6 +1,6 @@
 # Batman::Rails
 
-Easily setup and use batman.js (0.15) with Rails 4
+Easily setup and use batman.js (0.16) with Rails 4
 
 ## Installation
 
