@@ -15,7 +15,6 @@
   date_re = /^(\d{4}|[+\-]\d{6})(?:-(\d{2})(?:-(\d{2}))?)?(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{3}))?)?(?:(Z)|([+\-])(\d{2})(?::(\d{2}))?)?)?$/;
 
   Batman.Encoders.railsDate = {
-    defaultTimezoneOffset: (new Date()).getTimezoneOffset(),
     encode: function(value) {
       return value;
     },
@@ -35,7 +34,7 @@
               minutesOffset = 0 - minutesOffset;
             }
           } else {
-            minutesOffset = Batman.Encoders.railsDate.defaultTimezoneOffset;
+            minutesOffset = new Date(obj[1], obj[2], obj[3], obj[4], obj[5], obj[6], obj[7]).getTimezoneOffset();
           }
           return new Date(Date.UTC(obj[1], obj[2], obj[3], obj[4], obj[5] + minutesOffset, obj[6], obj[7]));
         } else {
@@ -143,5 +142,10 @@
     return RailsStorage;
 
   })(Batman.RestStorage);
+
+}).call(this);
+
+(function() {
+
 
 }).call(this);
