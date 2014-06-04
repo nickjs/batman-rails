@@ -23,7 +23,7 @@ module Batman
           template "rails/layout.html", "app/views/layouts/#{app_name}.html.erb"
 
           unless ENV["RAILS_ENV"] == "test"
-            inject_into_file "config/routes.rb", :after => "#{js_application_name}::Application.routes.draw do\n"  do
+            inject_into_file "config/routes.rb", :after => "Rails.application.routes.draw do\n"  do
               route_catchall
             end
 
