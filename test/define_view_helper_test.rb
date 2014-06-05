@@ -11,7 +11,7 @@ class DefineViewHelperTest < ActionView::TestCase
   end
 
   test "it can be given override path" do
-    File.expects(:join).with("app/assets/batman/templates/", "**/*").returns("app/assets/batman/templates/**/*")
+    File.expects(:join).with("app/assets/batman/templates", "**/*").returns("app/assets/batman/templates/**/*")
     batman_define_views(path_to_html: "app/assets/batman/templates")
   end
 
