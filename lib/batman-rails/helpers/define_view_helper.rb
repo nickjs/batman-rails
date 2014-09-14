@@ -34,7 +34,7 @@ module Batman
       private
 
       def name
-        pathname.split(path_to_html).last.gsub(/\.html\.[a-z]+$/, '').to_s
+        pathname.split(path_to_html).last.gsub(/\.html.*/, '').to_s
       end
 
       def content
